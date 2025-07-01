@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # --- Конфиг ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/v3/aggressive-casino?p=vk3f"
-SUPPORT_LINK = "https://t.me/your_support_username"  # Замени на реальный юзернейм оператора
+SUPPORT_LINK = "https://t.me/Maksimmm16"  # Замени на реальный юзернейм оператора
 SERVER_URL = "https://tavern-bot.onrender.com"
 
 # --- База данных ---
