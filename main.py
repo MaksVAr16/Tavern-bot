@@ -4,7 +4,6 @@ import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from flask import Flask, request
-from threading import Thread
 
 # --- Настройка логов ---
 logging.basicConfig(
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 # --- Конфиг ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/v3/aggressive-casino?p=vk3f"
-SERVER_URL = "https://tavern-bot.onrender.com"  # Ваш URL на Render
+SERVER_URL = "https://tavern-bot.onrender.com"
 
 # --- База данных ---
 REGISTERED_USERS_FILE = "registered_users.txt"
@@ -60,35 +59,51 @@ async def check_registration(update: Update, context):
             if str(user_id) in f.read():
                 await update.callback_query.edit_message_text(
                     "✅ Регистрация подтверждена!\n\n"
-                    "Теперь вам доступен полный функционал!")
+                    "Теперь вам доступен полный функционал!"
+                )
             else:
                 await update.callback_query.edit_message_text(
                     "❌ Вы ещё не зарегистрированы!\n\n"
                     "Пройдите регистрацию по кнопке ниже:",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)]
-                    ]))
+                    ])
+                )
     except FileNotFoundError:
         await update.callback_query.edit_message_text("⚠️ Ошибка проверки. Попробуйте позже.")
 
-# --- Запуск бота с event loop ---
-async def run_bot_async():
+# --- Запуск бота ---
+async def run_bot():
     bot_app = Application.builder().token(BOT_TOKEN).build()
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
-    await bot_app.run_polling()
+    
+    # Отключаем обработку сигналов для Render
+    await bot_app.initialize()
+    await bot_app.start()
+    await bot_app.updater.start_polling(drop_pending_updates=True)
+    
+    return bot_app
 
-def run_bot():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(run_bot_async())
-    loop.close()
+def run_flask():
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
 
 if __name__ == "__main__":
     # Создаём файл для хранения данных
     if not os.path.exists(REGISTERED_USERS_FILE):
         open(REGISTERED_USERS_FILE, 'w').close()
     
-    # Запускаем бота и Flask
-    Thread(target=run_bot).start()
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
+    # Запускаем Flask в основном потоке
+    from threading import Thread
+    flask_thread = Thread(target=run_flask)
+    flask_thread.start()
+    
+    # Запускаем бота в главном потоке
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    bot = loop.run_until_complete(run_bot())
+    
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        loop.run_until_complete(bot.stop())
