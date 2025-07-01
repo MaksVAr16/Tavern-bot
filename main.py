@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from flask import Flask, request
@@ -14,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 # --- Конфиг ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-PARTNER_URL = "https://1wilib.life/v3/aggressive-casino?p=vk3f"  # Замените на свою!
-SERVER_URL = "https://ваш-бота-url.ru"  # Будет позже (пока не трогайте)
+PARTNER_URL = "https://1wilib.life/v3/aggressive-casino?p=vk3f"
+SERVER_URL = "https://tavern-bot.onrender.com"  # Ваш URL на Render
 
-# --- База "регистраций" (временная) ---
+# --- База данных ---
 REGISTERED_USERS_FILE = "registered_users.txt"
 
 # --- Flask для вебхуков ---
@@ -59,31 +60,35 @@ async def check_registration(update: Update, context):
             if str(user_id) in f.read():
                 await update.callback_query.edit_message_text(
                     "✅ Регистрация подтверждена!\n\n"
-                    "Теперь вам доступен полный функционал!"
-                )
+                    "Теперь вам доступен полный функционал!")
             else:
                 await update.callback_query.edit_message_text(
                     "❌ Вы ещё не зарегистрированы!\n\n"
                     "Пройдите регистрацию по кнопке ниже:",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)]
-                    ])
-                )
+                    ]))
     except FileNotFoundError:
         await update.callback_query.edit_message_text("⚠️ Ошибка проверки. Попробуйте позже.")
 
-# --- Запуск бота ---
-def run_bot():
+# --- Запуск бота с event loop ---
+async def run_bot_async():
     bot_app = Application.builder().token(BOT_TOKEN).build()
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
-    bot_app.run_polling()
+    await bot_app.run_polling()
+
+def run_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(run_bot_async())
+    loop.close()
 
 if __name__ == "__main__":
-    # Создаём файл для хранения данных, если его нет
+    # Создаём файл для хранения данных
     if not os.path.exists(REGISTERED_USERS_FILE):
         open(REGISTERED_USERS_FILE, 'w').close()
     
-    # Запускаем бота и Flask в отдельных потоках
+    # Запускаем бота и Flask
     Thread(target=run_bot).start()
-    app.run(port=5000)
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
