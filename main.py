@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 # --- Конфиг ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/v3/aggressive-casino?p=vk3f"
+SUPPORT_LINK = "https://t.me/your_support_username"  # Замени на реальный юзернейм оператора
 SERVER_URL = "https://tavern-bot.onrender.com"
 
 # --- База данных ---
@@ -35,22 +36,54 @@ def handle_1win_webhook():
     
     return "OK", 200
 
-# --- Команда /start ---
+# --- Улучшенная команда /start ---
 async def start(update: Update, context):
     keyboard = [
         [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
-        [InlineKeyboardButton("✅ Я зарегистрировался", callback_data="check_reg")],
-        [InlineKeyboardButton("🆘 Помощь", callback_data="help")]
+        [
+            InlineKeyboardButton("✅ Я зарегистрировался", callback_data="check_reg"),
+            InlineKeyboardButton("🆘 Помощь", callback_data="help")
+        ]
     ]
-    await update.message.reply_text(
-        "🎉 Добро пожаловать!\n\n"
+    
+    message = await update.message.reply_text(
+        "🎉 Добро пожаловать в бота!\n\n"
         "1. Нажми «Зарегистрироваться»\n"
-        "2. Создай НОВЫЙ аккаунт\n"
-        "3. Вернись и нажми «Я зарегистрировался»",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        "2. Создай <b>НОВЫЙ аккаунт</b> (вход в существующий не подойдёт!)\n"
+        "3. Вернись и нажми «Я зарегистрировался»\n\n"
+        "Если возникли проблемы - нажми «Помощь»",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="HTML"
+    )
+    
+    # Добавляем кнопку "Старт" рядом с полем ввода
+    await context.bot.set_chat_menu_button(
+        chat_id=update.effective_chat.id,
+        menu_button=MenuButtonCommands()
     )
 
-# --- Проверка регистрации ---
+# --- Обработчик кнопки помощи ---
+async def help_button(update: Update, context):
+    # Анимация "исчезновения" сообщения
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_reply_markup(reply_markup=None)
+    
+    keyboard = [
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")],
+        [InlineKeyboardButton("📞 Написать оператору", url=SUPPORT_LINK)]
+    ]
+    
+    await update.callback_query.edit_message_text(
+        "🛠 <b>Центр помощи</b>\n\n"
+        "Если у вас проблемы с регистрацией:\n"
+        "1. Обязательно создавайте <b>новый аккаунт</b>\n"
+        "2. Используйте ту же ссылку, что и в боте\n"
+        "3. Если не получается - напишите нашему оператору",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="HTML"
+    )
+
+# --- Проверка регистрации с кнопкой "Назад" ---
 async def check_registration(update: Update, context):
     user_id = update.effective_user.id
     
@@ -58,27 +91,39 @@ async def check_registration(update: Update, context):
         with open(REGISTERED_USERS_FILE, 'r') as f:
             if str(user_id) in f.read():
                 await update.callback_query.edit_message_text(
-                    "✅ Регистрация подтверждена!\n\n"
-                    "Теперь вам доступен полный функционал!"
+                    "✅ <b>Регистрация подтверждена!</b>\n\n"
+                    "Теперь вам доступен полный функционал!",
+                    parse_mode="HTML"
                 )
             else:
+                keyboard = [
+                    [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
+                    [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
+                ]
+                
                 await update.callback_query.edit_message_text(
-                    "❌ Вы ещё не зарегистрированы!\n\n"
+                    "❌ <b>Вы ещё не зарегистрированы!</b>\n\n"
                     "Пройдите регистрацию по кнопке ниже:",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)]
-                    ])
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode="HTML"
                 )
     except FileNotFoundError:
         await update.callback_query.edit_message_text("⚠️ Ошибка проверки. Попробуйте позже.")
 
+# --- Обработчик кнопки "Назад" ---
+async def back_to_start(update: Update, context):
+    await start(update.callback_query.message, context)
+
 # --- Запуск бота ---
 async def run_bot():
     bot_app = Application.builder().token(BOT_TOKEN).build()
+    
+    # Регистрируем обработчики
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
+    bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
+    bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
-    # Отключаем обработку сигналов для Render
     await bot_app.initialize()
     await bot_app.start()
     await bot_app.updater.start_polling(drop_pending_updates=True)
@@ -93,7 +138,7 @@ if __name__ == "__main__":
     if not os.path.exists(REGISTERED_USERS_FILE):
         open(REGISTERED_USERS_FILE, 'w').close()
     
-    # Запускаем Flask в основном потоке
+    # Запускаем Flask в отдельном потоке
     from threading import Thread
     flask_thread = Thread(target=run_flask)
     flask_thread.start()
