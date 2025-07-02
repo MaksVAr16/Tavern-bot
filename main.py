@@ -17,15 +17,23 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
-REGISTERED_USERS_FILE = "/tmp/registered_users.txt"
 MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
-
-# Автосоздание файла
-if not os.path.exists(REGISTERED_USERS_FILE):
-    with open(REGISTERED_USERS_FILE, 'w') as f:
-        logger.info("Файл registered_users.txt создан")
+REGISTERED_USERS_KEY = "REGISTERED_USERS"  # Ключ для хранения ID в переменных Render
 
 app = Flask(__name__)
+
+# Функции для работы с переменными среды
+def save_user_id(user_id: str):
+    """Сохраняет ID в переменную Render"""
+    registered_users = os.getenv(REGISTERED_USERS_KEY, "")
+    if user_id not in registered_users.split(","):
+        os.environ[REGISTERED_USERS_KEY] = f"{registered_users},{user_id}".strip(",")
+        logger.info(f"Юзер {user_id} сохранён")
+
+def is_user_registered(user_id: str) -> bool:
+    """Проверяет регистрацию через переменную"""
+    registered_users = os.getenv(REGISTERED_USERS_KEY, "")
+    return user_id in registered_users.split(",")
 
 async def post_init(app):
     await app.bot.delete_webhook(drop_pending_updates=True)
@@ -38,13 +46,12 @@ def handle_webhook():
         status = request.args.get('status')
         
         if status == "success" and user_id:
-            with open(REGISTERED_USERS_FILE, 'a') as f:
-                f.write(f"{user_id}\n")
+            save_user_id(user_id)  # Используем новую функцию
             logger.info(f"Юзер {user_id} зарегистрирован")
             return "OK", 200
         return "Error", 400
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
+        logger.error(f"Ошибка вебхука: {e}")
         return "Server Error", 500
 
 async def start(update: Update, context):
@@ -77,15 +84,12 @@ async def start(update: Update, context):
 async def check_registration(update: Update, context):
     user_id = str(update.effective_user.id)
     try:
-        with open(REGISTERED_USERS_FILE, 'r') as f:
-            registered = user_id in f.read()
-        
-        if registered:
+        if is_user_registered(user_id):  # Используем новую функцию
             keyboard = [
                 [InlineKeyboardButton("🎰 Перейти к рулетке", url=MINI_APP_URL)],
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
             ]
-            text = "🎉 <b>Поздравляем! Ты почти у цели...</b>"
+            text = "🎉 <b>Регистрация подтверждена!</b>"
         else:
             keyboard = [
                 [InlineKeyboardButton("🔹 Попробовать ещё раз", url=PARTNER_URL)],
