@@ -1,10 +1,12 @@
 import os
 import logging
 import asyncio
+import psycopg2
 from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from flask import Flask, request
+from dotenv import load_dotenv
 
 # Настройка логов
 logging.basicConfig(
@@ -13,47 +15,92 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Загрузка переменных окружения
+load_dotenv()
+
 # Конфиг
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
-REGISTERED_USERS_KEY = "REGISTERED_USERS"  # Ключ для хранения ID в переменных Render
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = Flask(__name__)
 
-# Функции для работы с переменными среды
+# Инициализация базы данных
+def init_db():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS registered_users (
+                    user_id TEXT PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+            logger.info("✅ База данных инициализирована")
+    except Exception as e:
+        logger.error(f"❌ Ошибка инициализации БД: {e}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
 def save_user_id(user_id: str):
-    """Сохраняет ID в переменную Render"""
-    registered_users = os.getenv(REGISTERED_USERS_KEY, "")
-    if user_id not in registered_users.split(","):
-        os.environ[REGISTERED_USERS_KEY] = f"{registered_users},{user_id}".strip(",")
-        logger.info(f"Юзер {user_id} сохранён")
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO registered_users (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
+                (user_id,)
+            )
+            conn.commit()
+            logger.info(f"✅ Юзер {user_id} сохранён в БД")
+    except Exception as e:
+        logger.error(f"❌ Ошибка сохранения пользователя: {e}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 def is_user_registered(user_id: str) -> bool:
-    """Проверяет регистрацию через переменную"""
-    registered_users = os.getenv(REGISTERED_USERS_KEY, "")
-    return user_id in registered_users.split(",")
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT 1 FROM registered_users WHERE user_id = %s",
+                (user_id,)
+            )
+            result = cursor.fetchone() is not None
+            logger.info(f"🔍 Проверка регистрации: user_id={user_id}, результат={result}")
+            return result
+    except Exception as e:
+        logger.error(f"❌ Ошибка проверки регистрации: {e}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
-async def post_init(app):
-    await app.bot.delete_webhook(drop_pending_updates=True)
-    logger.info("Предыдущие процессы убиты")
+# Инициализация БД при старте
+init_db()
 
+# Вебхук для регистрации
 @app.route('/1win_webhook', methods=['GET'])
 def handle_webhook():
     try:
         user_id = request.args.get('user_id')
         status = request.args.get('status')
+        logger.info(f"🔄 Вебхук получен: user_id={user_id}, status={status}")
         
         if status == "success" and user_id:
-            save_user_id(user_id)  # Используем новую функцию
-            logger.info(f"Юзер {user_id} зарегистрирован")
+            save_user_id(user_id)
+            logger.info(f"✅ Юзер {user_id} зарегистрирован")
             return "OK", 200
         return "Error", 400
     except Exception as e:
-        logger.error(f"Ошибка вебхука: {e}")
+        logger.error(f"❌ Ошибка вебхука: {e}")
         return "Server Error", 500
 
+# Команда /start
 async def start(update: Update, context):
     keyboard = [
         [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
@@ -81,10 +128,11 @@ async def start(update: Update, context):
             parse_mode="HTML"
         )
 
+# Проверка регистрации
 async def check_registration(update: Update, context):
     user_id = str(update.effective_user.id)
     try:
-        if is_user_registered(user_id):  # Используем новую функцию
+        if is_user_registered(user_id):
             keyboard = [
                 [InlineKeyboardButton("🎰 Перейти к рулетке", url=MINI_APP_URL)],
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
@@ -103,9 +151,10 @@ async def check_registration(update: Update, context):
             parse_mode="HTML"
         )
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
+        logger.error(f"❌ Ошибка проверки регистрации: {e}")
         await update.callback_query.edit_message_text("⚠️ Ошибка сервера")
 
+# Кнопка помощи
 async def help_button(update: Update, context):
     keyboard = [
         [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")],
@@ -118,6 +167,7 @@ async def help_button(update: Update, context):
         parse_mode="HTML"
     )
 
+# Назад в начало
 async def back_to_start(update: Update, context):
     keyboard = [
         [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
@@ -135,13 +185,18 @@ async def back_to_start(update: Update, context):
         parse_mode="HTML"
     )
 
+# Запуск Flask
 def run_flask():
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
 
+# Запуск бота
 async def run_bot():
+    # Удаляем предыдущие вебхуки
+    async with Application.builder().token(BOT_TOKEN).build() as app:
+        await app.bot.delete_webhook(drop_pending_updates=True)
+    
     bot_app = Application.builder() \
         .token(BOT_TOKEN) \
-        .post_init(post_init) \
         .build()
     
     bot_app.add_handler(CommandHandler("start", start))
@@ -149,22 +204,14 @@ async def run_bot():
     bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
     bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
-    await bot_app.initialize()
-    await bot_app.start()
-    logger.info("✅ Бот запущен!")
-    await bot_app.updater.start_polling()
-    return bot_app
+    logger.info("✅ Бот запущен и готов к работе!")
+    await bot_app.run_polling()
 
 if __name__ == "__main__":
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(run_bot())
-        loop.run_forever()
+        asyncio.run(run_bot())
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
-    finally:
-        loop.close()
+        logger.error(f"❌ Критическая ошибка: {e}")
