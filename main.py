@@ -5,7 +5,6 @@ from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from flask import Flask, request
-from datetime import datetime
 
 # Настройка логов
 logging.basicConfig(
@@ -23,7 +22,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 REGISTERED_USERS_FILE = os.path.abspath("registered_users.txt")
-ADMIN_ID = "8037553363"  # Твой ID для отладки
+MINI_APP_URL = "https://example.com/mini-app"  # Замени на реальный URL когда будет готово
 
 # Создаем файл если его нет
 if not os.path.exists(REGISTERED_USERS_FILE):
@@ -37,17 +36,16 @@ def handle_webhook():
     try:
         user_id = request.args.get('user_id')
         status = request.args.get('status')
-        deposit = request.args.get('deposit', '0')
         
-        logger.info(f"Получен вебхук: user_id={user_id}, status={status}, deposit={deposit}")
+        logger.info(f"Получен вебхук: user_id={user_id}, status={status}")
         
-        if status == "success" and user_id and int(deposit) >= 100:
+        if status == "success" and user_id:
             with open(REGISTERED_USERS_FILE, 'a') as f:
                 f.write(f"{user_id}\n")
             logger.info(f"Успешная регистрация: {user_id}")
             return "OK", 200
             
-        return "Error: Need deposit 100+ RUB", 400
+        return "Error: Invalid data", 400
         
     except Exception as e:
         logger.error(f"Ошибка вебхука: {str(e)}")
@@ -57,18 +55,17 @@ async def start(update: Update, context):
     keyboard = [
         [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
         [
-            InlineKeyboardButton("✅ Я зарегистрировался", callback_data="check_reg"),
+            InlineKeyboardButton("✅ Проверить регистрацию", callback_data="check_reg"),
             InlineKeyboardButton("🆘 Помощь", callback_data="help")
         ]
     ]
     text = (
-        "🎉 <b>Добро пожаловать в букмекер-бота!</b>\n\n"
-        "💰 <b>Для получения бонуса:</b>\n"
+        "🎰 <b>Добро пожаловать в Casino Bot!</b>\n\n"
+        "Чтобы получить доступ к рулетке:\n"
         "1. Нажми «Зарегистрироваться»\n"
-        "2. Создай <b>НОВЫЙ аккаунт</b>\n"
-        "3. Пополни баланс <b>от 100₽</b>\n"
-        "4. Нажми «Я зарегистрировался»\n\n"
-        "⚠️ <i>Без депозита бонус не начисляется!</i>"
+        "2. Создай <b>НОВЫЙ аккаунт</b> на 1Win\n"
+        "3. Нажми «Проверить регистрацию»\n\n"
+        "После подтверждения откроется доступ к мини-приложению!"
     )
     
     if update.callback_query:
@@ -84,9 +81,14 @@ async def check_registration(update: Update, context):
             registered = user_id in f.read()
             
         if registered:
+            keyboard = [
+                [InlineKeyboardButton("🎮 Открыть рулетку", url=MINI_APP_URL)],
+                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
+            ]
             await update.callback_query.edit_message_text(
-                "✅ <b>Регистрация и депозит подтверждены!</b>\n\n"
-                "Ваш бонус будет начислен в течение 24 часов.",
+                "✅ <b>Регистрация подтверждена!</b>\n\n"
+                "Теперь вам доступна наша рулетка:",
+                reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
         else:
@@ -95,10 +97,9 @@ async def check_registration(update: Update, context):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
             ]
             await update.callback_query.edit_message_text(
-                "❌ <b>Аккаунт не найден или депозит менее 100₽</b>\n\n"
-                "1. Зарегистрируйтесь по ссылке выше\n"
-                "2. Пополните баланс от 100₽\n"
-                "3. Попробуйте снова",
+                "❌ <b>Регистрация не найдена!</b>\n\n"
+                "1. Зарегистрируйтесь по кнопке ниже\n"
+                "2. Используйте тот же аккаунт в боте",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
@@ -111,32 +112,26 @@ async def manual_check(update: Update, context):
     user_id = str(update.effective_user.id)
     
     try:
-        # Проверяем, есть ли уже такой ID
         with open(REGISTERED_USERS_FILE, 'r+') as f:
             existing_ids = f.read()
             if user_id in existing_ids:
-                await update.message.reply_text("⚠️ Ваш ID уже был добавлен ранее!")
+                await update.message.reply_text("ℹ️ Вы уже подтвердили регистрацию ранее!")
                 return
             
-            # Добавляем ID
             f.write(f"{user_id}\n")
         
+        keyboard = [
+            [InlineKeyboardButton("🎮 Открыть рулетку", url=MINI_APP_URL)],
+            [InlineKeyboardButton("🔙 В меню", callback_data="back_to_start")]
+        ]
+        
         await update.message.reply_text(
-            "✅ <b>Ваш ID успешно добавлен вручную!</b>\n\n"
-            "Если бонус не пришел в течение 24 часов:\n"
-            "1. Проверьте пополнение счета\n"
-            "2. Напишите поддержку 1Win\n"
-            "3. Свяжитесь с нами: @Maksimmm16",
+            "✅ <b>Регистрация подтверждена вручную!</b>\n\n"
+            "Теперь вам доступна наша рулетка:",
+            reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
         
-        # Уведомление админу
-        if str(update.effective_user.id) != ADMIN_ID:
-            await context.bot.send_message(
-                chat_id=ADMIN_ID,
-                text=f"⚠️ Ручная проверка: {user_id}"
-            )
-            
     except Exception as e:
         logger.error(f"Ошибка ручной проверки: {str(e)}")
         await update.message.reply_text("⚠️ Ошибка сервера. Попробуйте позже.")
@@ -145,15 +140,14 @@ async def help_button(update: Update, context):
     await update.callback_query.answer()
     keyboard = [
         [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")],
-        [InlineKeyboardButton("📞 Написать оператору", url=SUPPORT_LINK)]
+        [InlineKeyboardButton("📞 Поддержка", url=SUPPORT_LINK)]
     ]
     await update.callback_query.edit_message_text(
         "🛠 <b>Центр помощи</b>\n\n"
-        "Если у вас проблемы:\n"
-        "1. Обязательно создавайте <b>новый аккаунт</b>\n"
-        "2. Пополняйте баланс <b>от 100₽</b>\n"
-        "3. Напишите любое сообщение в чат для ручной проверки\n\n"
-        "<i>Без депозита бонус не начисляется!</i>",
+        "Если возникли проблемы:\n"
+        "• Напишите любое сообщение для ручной проверки\n"
+        "• Убедитесь, что регистрировались по нашей ссылке\n"
+        "• Для срочной помощи нажмите кнопку ниже",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
     )
