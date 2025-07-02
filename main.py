@@ -22,7 +22,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 REGISTERED_USERS_FILE = os.path.abspath("registered_users.txt")
-MINI_APP_URL = "https://example.com/mini-app"  # Замени на реальный URL когда будет готово
+MINI_APP_URL = "https://dynamic-blancmange-096e84.netlify.app"  # Замени на реальный URL когда будет готово
 
 # Создаем файл если его нет
 if not os.path.exists(REGISTERED_USERS_FILE):
