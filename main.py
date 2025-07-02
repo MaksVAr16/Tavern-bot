@@ -22,7 +22,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 REGISTERED_USERS_FILE = os.path.abspath("registered_users.txt")
-MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
+MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"  # Замени на реальный URL когда будет готово
 
 # Создаем файл если его нет
 if not os.path.exists(REGISTERED_USERS_FILE):
@@ -55,17 +55,15 @@ async def start(update: Update, context):
     keyboard = [
         [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
         [
-            InlineKeyboardButton("✅ Проверить регистрацию", callback_data="check_reg"),
-            InlineKeyboardButton("🆘 Помощь", callback_data="help")
+            InlineKeyboardButton("✅ Я зарегистрировался", callback_data="check_reg"),
+            InlineKeyboardButton("❓ Нужна помощь", callback_data="help")
         ]
     ]
     text = (
-        "🎰 <b>Добро пожаловать в Casino Bot!</b>\n\n"
-        "Чтобы получить доступ к рулетке:\n"
+        "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
         "1. Нажми «Зарегистрироваться»\n"
-        "2. Создай <b>НОВЫЙ аккаунт</b> на 1Win\n"
-        "3. Нажми «Проверить регистрацию»\n\n"
-        "После подтверждения откроется доступ к мини-приложению!"
+        "2. Создай <b>НОВЫЙ аккаунт</b> (вход в старый не подойдёт!)\n"
+        "3. Вернись и нажми «Я зарегистрировался»"
     )
     
     if update.callback_query:
@@ -82,31 +80,23 @@ async def check_registration(update: Update, context):
             
         if registered:
             keyboard = [
-                [InlineKeyboardButton("🎮 Открыть рулетку", url=MINI_APP_URL)],
-                [
-                    InlineKeyboardButton("🔙 Назад", callback_data="back_to_start"),
-                    InlineKeyboardButton("🆘 Помощь", callback_data="help")
-                ]
+                [InlineKeyboardButton("🎰 Перейти к рулетке", url=MINI_APP_URL)],
+                [InlineKeyboardButton("❓ Нужна помощь", callback_data="help")]
             ]
             await update.callback_query.edit_message_text(
-                "✅ <b>Регистрация подтверждена!</b>\n\n"
-                "Теперь вам доступна наша рулетка:",
+                "🎉 <b>Поздравляем! Ты почти у цели...</b>\n\n"
+                "Теперь тебе доступна рулетка с бонусами:",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
         else:
             keyboard = [
-                [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
-                [
-                    InlineKeyboardButton("🔙 Назад", callback_data="back_to_start"),
-                    InlineKeyboardButton("🆘 Помощь", callback_data="help")
-                ]
+                [InlineKeyboardButton("🔹 Попробовать ещё раз", url=PARTNER_URL)],
+                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
             ]
             await update.callback_query.edit_message_text(
                 "❌ <b>Регистрация не найдена!</b>\n\n"
-                "1. Зарегистрируйтесь по кнопке ниже\n"
-                "2. Используйте тот же аккаунт в боте\n\n"
-                "<i>Обязательно создавайте НОВЫЙ аккаунт!</i>",
+                "👉 Попробуйте ещё раз. Зарегистрируйте <b>НОВЫЙ аккаунт</b> по ссылке выше.",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
@@ -118,13 +108,12 @@ async def check_registration(update: Update, context):
 async def help_button(update: Update, context):
     keyboard = [
         [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")],
-        [InlineKeyboardButton("📞 Написать менеджеру", url=SUPPORT_LINK)]
+        [InlineKeyboardButton("📞 Связаться с менеджером", url=SUPPORT_LINK)]
     ]
     await update.callback_query.edit_message_text(
         "🛠 <b>Центр помощи</b>\n\n"
         "Если возникли проблемы:\n"
         "• Обязательно создавайте <b>НОВЫЙ аккаунт</b>\n"
-        "• Регистрируйтесь только по нашей ссылке\n"
         "• Для срочной помощи напишите менеджеру:\n\n"
         f"👉 <a href='{SUPPORT_LINK}'>Максим (нажмите здесь)</a>",
         reply_markup=InlineKeyboardMarkup(keyboard),
@@ -141,7 +130,7 @@ def run_flask():
 async def run_bot():
     bot_app = Application.builder().token(BOT_TOKEN).build()
     
-    # Обработчики
+    # Обработчики (ВАЖНО: ручной ввод УДАЛЕН, остальное без изменений)
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
     bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
