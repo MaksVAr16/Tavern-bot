@@ -1,8 +1,6 @@
 import os
 import logging
-import asyncio
 import psycopg2
-from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from flask import Flask, request
@@ -18,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Загрузка переменных окружения
 load_dotenv()
 
-# Конфиг
+# Конфигурация
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
@@ -41,7 +39,7 @@ def init_db():
             conn.commit()
             logger.info("✅ База данных инициализирована")
     except Exception as e:
-        logger.error(f"❌ Ошибка инициализации БД: {e}")
+        logger.error(f"❌ Ошибка БД: {e}")
     finally:
         if 'conn' in locals():
             conn.close()
@@ -55,9 +53,9 @@ def save_user_id(user_id: str):
                 (user_id,)
             )
             conn.commit()
-            logger.info(f"✅ Юзер {user_id} сохранён в БД")
+            logger.info(f"✅ Юзер {user_id} сохранён")
     except Exception as e:
-        logger.error(f"❌ Ошибка сохранения пользователя: {e}")
+        logger.error(f"❌ Ошибка сохранения: {e}")
     finally:
         if 'conn' in locals():
             conn.close()
@@ -71,25 +69,25 @@ def is_user_registered(user_id: str) -> bool:
                 (user_id,)
             )
             result = cursor.fetchone() is not None
-            logger.info(f"🔍 Проверка регистрации: user_id={user_id}, результат={result}")
+            logger.info(f"🔍 Проверка: user_id={user_id}, результат={result}")
             return result
     except Exception as e:
-        logger.error(f"❌ Ошибка проверки регистрации: {e}")
+        logger.error(f"❌ Ошибка проверки: {e}")
         return False
     finally:
         if 'conn' in locals():
             conn.close()
 
-# Инициализация БД при старте
+# Инициализация БД
 init_db()
 
-# Вебхук для регистрации
+# Вебхук
 @app.route('/1win_webhook', methods=['GET'])
 def handle_webhook():
     try:
         user_id = request.args.get('user_id')
         status = request.args.get('status')
-        logger.info(f"🔄 Вебхук получен: user_id={user_id}, status={status}")
+        logger.info(f"🔄 Вебхук: user_id={user_id}, status={status}")
         
         if status == "success" and user_id:
             save_user_id(user_id)
@@ -109,24 +107,18 @@ async def start(update: Update, context):
             InlineKeyboardButton("❓ Нужна помощь", callback_data="help")
         ]
     ]
+    
+    text = (
+        "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
+        "1. Нажми «Зарегистрироваться»\n"
+        "2. Создай <b>НОВЫЙ аккаунт</b>\n"
+        "3. Нажми «Я зарегистрировался»"
+    )
+    
     if update.callback_query:
-        await update.callback_query.edit_message_text(
-            "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
-            "1. Нажми «Зарегистрироваться»\n"
-            "2. Создай <b>НОВЫЙ аккаунт</b>\n"
-            "3. Нажми «Я зарегистрировался»",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="HTML"
-        )
+        await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
     else:
-        await update.message.reply_text(
-            "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
-            "1. Нажми «Зарегистрироваться»\n"
-            "2. Создай <b>НОВЫЙ аккаунт</b>\n"
-            "3. Нажми «Я зарегистрировался»",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="HTML"
-        )
+        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
 # Проверка регистрации
 async def check_registration(update: Update, context):
@@ -145,73 +137,50 @@ async def check_registration(update: Update, context):
             ]
             text = "❌ <b>Регистрация не найдена!</b>"
         
-        await update.callback_query.edit_message_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="HTML"
-        )
+        await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
     except Exception as e:
-        logger.error(f"❌ Ошибка проверки регистрации: {e}")
+        logger.error(f"❌ Ошибка: {e}")
         await update.callback_query.edit_message_text("⚠️ Ошибка сервера")
 
-# Кнопка помощи
+# Помощь
 async def help_button(update: Update, context):
     keyboard = [
         [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")],
         [InlineKeyboardButton("📞 Менеджер", url=SUPPORT_LINK)]
     ]
     await update.callback_query.edit_message_text(
-        "🛠 <b>Центр помощи</b>\n\n"
-        "Для связи с менеджером:",
+        "🛠 <b>Центр помощи</b>\n\nДля связи с менеджером:",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
     )
 
-# Назад в начало
+# Назад
 async def back_to_start(update: Update, context):
-    keyboard = [
-        [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
-        [
-            InlineKeyboardButton("✅ Я зарегистрировался", callback_data="check_reg"),
-            InlineKeyboardButton("❓ Нужна помощь", callback_data="help")
-        ]
-    ]
-    await update.callback_query.edit_message_text(
-        "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
-        "1. Нажми «Зарегистрироваться»\n"
-        "2. Создай <b>НОВЫЙ аккаунт</b>\n"
-        "3. Нажми «Я зарегистрировался»",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="HTML"
-    )
+    await start(update, context)
 
 # Запуск Flask
 def run_flask():
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
 
-# Запуск бота
-async def run_bot():
-    # Удаляем предыдущие вебхуки
-    async with Application.builder().token(BOT_TOKEN).build() as app:
-        await app.bot.delete_webhook(drop_pending_updates=True)
+# Основная функция
+def main():
+    # Создаем приложение бота
+    application = Application.builder().token(BOT_TOKEN).build()
     
-    bot_app = Application.builder() \
-        .token(BOT_TOKEN) \
-        .build()
+    # Добавляем обработчики
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
+    application.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
+    application.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
-    bot_app.add_handler(CommandHandler("start", start))
-    bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
-    bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
-    bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
-    
-    logger.info("✅ Бот запущен и готов к работе!")
-    await bot_app.run_polling()
-
-if __name__ == "__main__":
+    # Запускаем Flask в отдельном потоке
+    from threading import Thread
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     
-    try:
-        asyncio.run(run_bot())
-    except Exception as e:
-        logger.error(f"❌ Критическая ошибка: {e}")
+    # Запускаем бота
+    logger.info("✅ Бот запущен!")
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
