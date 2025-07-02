@@ -20,17 +20,17 @@ SUPPORT_LINK = "https://t.me/Maksimmm16"
 REGISTERED_USERS_FILE = "/tmp/registered_users.txt"  # Важно для Render!
 MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
 
-# Создаем файл если его нет
+# Автосоздание файла
 if not os.path.exists(REGISTERED_USERS_FILE):
     with open(REGISTERED_USERS_FILE, 'w') as f:
-        logger.info("Файл зарегистрированных юзеров создан")
+        logger.info("Файл registered_users.txt создан")
 
 app = Flask(__name__)
 
-# Важно: Удаляем все предыдущие обновления при старте
+# Важно: убиваем старые процессы
 async def post_init(app):
     await app.bot.delete_webhook(drop_pending_updates=True)
-    logger.info("Старые обновления очищены")
+    logger.info("Предыдущие процессы убиты")
 
 @app.route('/1win_webhook', methods=['GET'])
 def handle_webhook():
@@ -81,6 +81,7 @@ async def check_registration(update: Update, context):
             keyboard = [
                 [InlineKeyboardButton("🔹 Попробовать ещё раз", url=PARTNER_URL)],
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
+            ]
             text = "❌ <b>Регистрация не найдена!</b>"
         
         await update.callback_query.edit_message_text(
@@ -123,7 +124,7 @@ async def run_bot():
     
     await bot_app.initialize()
     await bot_app.start()
-    logger.info("Бот запущен!")
+    logger.info("✅ Бот запущен!")
     await bot_app.updater.start_polling()
     return bot_app
 
