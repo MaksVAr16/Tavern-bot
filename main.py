@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
-REGISTERED_USERS_FILE = "/tmp/registered_users.txt"  # Важно для Render!
+REGISTERED_USERS_FILE = "/tmp/registered_users.txt"
 MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
 
 # Автосоздание файла
@@ -27,7 +27,6 @@ if not os.path.exists(REGISTERED_USERS_FILE):
 
 app = Flask(__name__)
 
-# Важно: убиваем старые процессы
 async def post_init(app):
     await app.bot.delete_webhook(drop_pending_updates=True)
     logger.info("Предыдущие процессы убиты")
@@ -56,14 +55,24 @@ async def start(update: Update, context):
             InlineKeyboardButton("❓ Нужна помощь", callback_data="help")
         ]
     ]
-    await update.message.reply_text(
-        "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
-        "1. Нажми «Зарегистрироваться»\n"
-        "2. Создай <b>НОВЫЙ аккаунт</b>\n"
-        "3. Нажми «Я зарегистрировался»",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="HTML"
-    )
+    if update.callback_query:
+        await update.callback_query.edit_message_text(
+            "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
+            "1. Нажми «Зарегистрироваться»\n"
+            "2. Создай <b>НОВЫЙ аккаунт</b>\n"
+            "3. Нажми «Я зарегистрировался»",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="HTML"
+        )
+    else:
+        await update.message.reply_text(
+            "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
+            "1. Нажми «Зарегистрироваться»\n"
+            "2. Создай <b>НОВЫЙ аккаунт</b>\n"
+            "3. Нажми «Я зарегистрировался»",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="HTML"
+        )
 
 async def check_registration(update: Update, context):
     user_id = str(update.effective_user.id)
@@ -106,7 +115,21 @@ async def help_button(update: Update, context):
     )
 
 async def back_to_start(update: Update, context):
-    await start(update, context)
+    keyboard = [
+        [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
+        [
+            InlineKeyboardButton("✅ Я зарегистрировался", callback_data="check_reg"),
+            InlineKeyboardButton("❓ Нужна помощь", callback_data="help")
+        ]
+    ]
+    await update.callback_query.edit_message_text(
+        "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
+        "1. Нажми «Зарегистрироваться»\n"
+        "2. Создай <b>НОВЫЙ аккаунт</b>\n"
+        "3. Нажми «Я зарегистрировался»",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="HTML"
+    )
 
 def run_flask():
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
