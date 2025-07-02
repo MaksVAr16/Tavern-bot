@@ -83,7 +83,10 @@ async def check_registration(update: Update, context):
         if registered:
             keyboard = [
                 [InlineKeyboardButton("🎮 Открыть рулетку", url=MINI_APP_URL)],
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
+                [
+                    InlineKeyboardButton("🔙 Назад", callback_data="back_to_start"),
+                    InlineKeyboardButton("🆘 Помощь", callback_data="help")
+                ]
             ]
             await update.callback_query.edit_message_text(
                 "✅ <b>Регистрация подтверждена!</b>\n\n"
@@ -94,12 +97,16 @@ async def check_registration(update: Update, context):
         else:
             keyboard = [
                 [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
+                [
+                    InlineKeyboardButton("🔙 Назад", callback_data="back_to_start"),
+                    InlineKeyboardButton("🆘 Помощь", callback_data="help")
+                ]
             ]
             await update.callback_query.edit_message_text(
                 "❌ <b>Регистрация не найдена!</b>\n\n"
                 "1. Зарегистрируйтесь по кнопке ниже\n"
-                "2. Используйте тот же аккаунт в боте",
+                "2. Используйте тот же аккаунт в боте\n\n"
+                "<i>Обязательно создавайте НОВЫЙ аккаунт!</i>",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
@@ -109,18 +116,20 @@ async def check_registration(update: Update, context):
         await update.callback_query.edit_message_text("⚠️ Ошибка сервера. Попробуйте позже.")
 
 async def help_button(update: Update, context):
-    await update.callback_query.answer()
     keyboard = [
         [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")],
-        [InlineKeyboardButton("📞 Поддержка", url=SUPPORT_LINK)]
+        [InlineKeyboardButton("📞 Написать менеджеру", url=SUPPORT_LINK)]
     ]
     await update.callback_query.edit_message_text(
         "🛠 <b>Центр помощи</b>\n\n"
         "Если возникли проблемы:\n"
-        "• Убедитесь, что регистрировались по нашей ссылке\n"
-        "• Для срочной помощи нажмите кнопку ниже",
+        "• Обязательно создавайте <b>НОВЫЙ аккаунт</b>\n"
+        "• Регистрируйтесь только по нашей ссылке\n"
+        "• Для срочной помощи напишите менеджеру:\n\n"
+        f"👉 <a href='{SUPPORT_LINK}'>Максим (нажмите здесь)</a>",
         reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="HTML"
+        parse_mode="HTML",
+        disable_web_page_preview=True
     )
 
 async def back_to_start(update: Update, context):
@@ -132,7 +141,7 @@ def run_flask():
 async def run_bot():
     bot_app = Application.builder().token(BOT_TOKEN).build()
     
-    # Обработчики (ВАЖНО: ручной ввод УДАЛЕН)
+    # Обработчики
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
     bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
