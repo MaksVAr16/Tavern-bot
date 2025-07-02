@@ -21,6 +21,11 @@ SERVER_URL = "https://tavern-bot.onrender.com"
 # --- База данных ---
 REGISTERED_USERS_FILE = "registered_users.txt"
 
+# --- Явное создание файла если не существует ---
+if not os.path.exists(REGISTERED_USERS_FILE):
+    with open(REGISTERED_USERS_FILE, 'w') as f:
+        f.write("")
+
 # --- Flask для вебхуков ---
 app = Flask(__name__)
 
@@ -46,7 +51,6 @@ async def start(update: Update, context):
         ]
     ]
     
-    # Если это callback (нажатие кнопки "Назад")
     if update.callback_query:
         await update.callback_query.edit_message_text(
             "🎉 Добро пожаловать в бота!\n\n"
@@ -58,7 +62,6 @@ async def start(update: Update, context):
             parse_mode="HTML"
         )
     else:
-        # Если это команда /start
         await update.message.reply_text(
             "🎉 Добро пожаловать в бота!\n\n"
             "1. Нажми «Зарегистрироваться»\n"
@@ -117,7 +120,7 @@ async def check_registration(update: Update, context):
 
 # --- Обработчик кнопки "Назад" ---
 async def back_to_start(update: Update, context):
-    await start(update, context)  # Используем ту же функцию start, но для callback
+    await start(update, context)
 
 # --- Запуск бота ---
 async def run_bot():
@@ -138,9 +141,6 @@ def run_flask():
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
 
 if __name__ == "__main__":
-    if not os.path.exists(REGISTERED_USERS_FILE):
-        open(REGISTERED_USERS_FILE, 'w').close()
-    
     from threading import Thread
     flask_thread = Thread(target=run_flask)
     flask_thread.start()
