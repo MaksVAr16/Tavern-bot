@@ -1,6 +1,8 @@
 import os
 import logging
 import asyncio
+from threading import Thread, Lock
+from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from flask import Flask, request
@@ -8,7 +10,11 @@ from flask import Flask, request
 # --- Настройка логов ---
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler("bot_debug.log"),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -20,28 +26,44 @@ SERVER_URL = "https://tavern-bot.onrender.com"
 
 # --- База данных ---
 REGISTERED_USERS_FILE = "registered_users.txt"
-
-# --- Явное создание файла если не существует ---
-if not os.path.exists(REGISTERED_USERS_FILE):
-    with open(REGISTERED_USERS_FILE, 'w') as f:
-        f.write("")
+file_lock = Lock()  # Для безопасной записи в файл
 
 # --- Flask для вебхуков ---
 app = Flask(__name__)
 
-@app.route('/1win_webhook', methods=['GET'])
+@app.route('/1win_webhook', methods=['GET', 'POST'])
 def handle_1win_webhook():
-    user_id = request.args.get('user_id')
-    status = request.args.get('status')
-    
-    if status == "success":
-        with open(REGISTERED_USERS_FILE, 'a') as f:
-            f.write(f"{user_id}\n")
-        logger.info(f"User {user_id} registered!")
-    
-    return "OK", 200
+    try:
+        # Получаем параметры
+        user_id = request.args.get('user_id') or (request.json and request.json.get('user_id'))
+        status = request.args.get('status') or (request.json and request.json.get('status'))
+        
+        if not user_id:
+            return "user_id required", 400
+        
+        # Логируем запрос
+        logger.info(f"Получен запрос: user_id={user_id}, status={status}")
+        
+        if status == "success":
+            with file_lock:
+                # Проверяем, не зарегистрирован ли уже пользователь
+                registered = False
+                if os.path.exists(REGISTERED_USERS_FILE):
+                    with open(REGISTERED_USERS_FILE, 'r') as f:
+                        registered = str(user_id) in f.read()
+                
+                if not registered:
+                    with open(REGISTERED_USERS_FILE, 'a') as f:
+                        f.write(f"{user_id}\n")
+                    logger.info(f"Успешная регистрация: {user_id}")
+        
+        return "OK", 200
+        
+    except Exception as e:
+        logger.error(f"Ошибка: {str(e)}")
+        return "Server Error", 500
 
-# --- Улучшенная команда /start ---
+# --- Все ваши обработчики сообщений и кнопок БЕЗ ИЗМЕНЕНИЙ ---
 async def start(update: Update, context):
     keyboard = [
         [InlineKeyboardButton("🔹 Зарегистрироваться", url=PARTNER_URL)],
@@ -72,7 +94,6 @@ async def start(update: Update, context):
             parse_mode="HTML"
         )
 
-# --- Обработчик кнопки помощи ---
 async def help_button(update: Update, context):
     await update.callback_query.answer()
     
@@ -91,7 +112,6 @@ async def help_button(update: Update, context):
         parse_mode="HTML"
     )
 
-# --- Проверка регистрации ---
 async def check_registration(update: Update, context):
     user_id = update.effective_user.id
     
@@ -118,11 +138,10 @@ async def check_registration(update: Update, context):
     except FileNotFoundError:
         await update.callback_query.edit_message_text("⚠️ Ошибка проверки. Попробуйте позже.")
 
-# --- Обработчик кнопки "Назад" ---
 async def back_to_start(update: Update, context):
     await start(update, context)
 
-# --- Запуск бота ---
+# --- Запуск ---
 async def run_bot():
     bot_app = Application.builder().token(BOT_TOKEN).build()
     
@@ -141,15 +160,23 @@ def run_flask():
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
 
 if __name__ == "__main__":
-    from threading import Thread
-    flask_thread = Thread(target=run_flask)
+    # Создаем файл если его нет
+    if not os.path.exists(REGISTERED_USERS_FILE):
+        with open(REGISTERED_USERS_FILE, 'w') as f:
+            f.write("")
+    
+    # Запускаем Flask в фоне
+    flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     
+    # Запускаем бота
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    bot = loop.run_until_complete(run_bot())
     
     try:
+        bot = loop.run_until_complete(run_bot())
         loop.run_forever()
     except KeyboardInterrupt:
         loop.run_until_complete(bot.stop())
+    finally:
+        loop.close()
