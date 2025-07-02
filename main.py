@@ -22,7 +22,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 REGISTERED_USERS_FILE = os.path.abspath("registered_users.txt")
-MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"  # Замени на реальный URL когда будет готово
+MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
 
 # Создаем файл если его нет
 if not os.path.exists(REGISTERED_USERS_FILE):
@@ -108,34 +108,6 @@ async def check_registration(update: Update, context):
         logger.error(f"Ошибка проверки: {str(e)}")
         await update.callback_query.edit_message_text("⚠️ Ошибка сервера. Попробуйте позже.")
 
-async def manual_check(update: Update, context):
-    user_id = str(update.effective_user.id)
-    
-    try:
-        with open(REGISTERED_USERS_FILE, 'r+') as f:
-            existing_ids = f.read()
-            if user_id in existing_ids:
-                await update.message.reply_text("ℹ️ Вы уже подтвердили регистрацию ранее!")
-                return
-            
-            f.write(f"{user_id}\n")
-        
-        keyboard = [
-            [InlineKeyboardButton("🎮 Открыть рулетку", url=MINI_APP_URL)],
-            [InlineKeyboardButton("🔙 В меню", callback_data="back_to_start")]
-        ]
-        
-        await update.message.reply_text(
-            "✅ <b>Регистрация подтверждена вручную!</b>\n\n"
-            "Теперь вам доступна наша рулетка:",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="HTML"
-        )
-        
-    except Exception as e:
-        logger.error(f"Ошибка ручной проверки: {str(e)}")
-        await update.message.reply_text("⚠️ Ошибка сервера. Попробуйте позже.")
-
 async def help_button(update: Update, context):
     await update.callback_query.answer()
     keyboard = [
@@ -145,7 +117,6 @@ async def help_button(update: Update, context):
     await update.callback_query.edit_message_text(
         "🛠 <b>Центр помощи</b>\n\n"
         "Если возникли проблемы:\n"
-        "• Напишите любое сообщение для ручной проверки\n"
         "• Убедитесь, что регистрировались по нашей ссылке\n"
         "• Для срочной помощи нажмите кнопку ниже",
         reply_markup=InlineKeyboardMarkup(keyboard),
@@ -161,12 +132,11 @@ def run_flask():
 async def run_bot():
     bot_app = Application.builder().token(BOT_TOKEN).build()
     
-    # Обработчики
+    # Обработчики (ВАЖНО: ручной ввод УДАЛЕН)
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
     bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
     bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
-    bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manual_check))
     
     await bot_app.initialize()
     await bot_app.start()
