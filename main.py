@@ -1,6 +1,7 @@
 import os
 import logging
 import asyncio
+import httpx
 import psycopg
 from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -14,17 +15,18 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # Добавляем DEBUG-логи
+logger.setLevel(logging.DEBUG)
 
 # Загрузка переменных окружения
 load_dotenv()
 
 # Конфиг
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-BASE_PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"  # Базовая ссылка без user_id
+BASE_PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
 DATABASE_URL = os.getenv("DATABASE_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")  # Добавим переменную для вебхука
 
 app = Flask(__name__)
 
@@ -240,9 +242,28 @@ def run_flask():
         logger.error(f"❌ Критическая ошибка Flask: {e}", exc_info=True)
         raise
 
+async def close_previous_connections():
+    """Закрывает предыдущие соединения бота с Telegram API"""
+    try:
+        async with httpx.AsyncClient() as client:
+            # Закрываем все предыдущие соединения
+            response = await client.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/close",
+                timeout=10
+            )
+            if response.status_code == 200:
+                logger.info("✅ Успешно закрыты предыдущие соединения бота")
+            else:
+                logger.warning(f"⚠️ Не удалось закрыть соединения: {response.text}")
+    except Exception as e:
+        logger.warning(f"⚠️ Ошибка при закрытии соединений: {e}")
+
 # Основная функция для запуска бота
 async def main():
     try:
+        # Закрываем предыдущие соединения перед запуском
+        await close_previous_connections()
+        
         logger.info("🔄 Инициализация бота...")
         bot_app = Application.builder().token(BOT_TOKEN).build()
         
@@ -252,17 +273,29 @@ async def main():
         bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
         bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
         
-        # Запускаем Flask в отдельном потоке
-        logger.info("🔄 Запуск Flask в отдельном потоке...")
-        flask_thread = Thread(target=run_flask, daemon=True)
-        flask_thread.start()
+        # Если указан URL для вебхука, используем webhook вместо polling
+        if WEBHOOK_URL:
+            logger.info("🔄 Настройка webhook...")
+            await bot_app.updater.start_webhook(
+                listen="0.0.0.0",
+                port=int(os.getenv('PORT', 10000)),
+                url_path=BOT_TOKEN,
+                webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
+            )
+        else:
+            # Запускаем Flask в отдельном потоке
+            logger.info("🔄 Запуск Flask в отдельном потоке...")
+            flask_thread = Thread(target=run_flask, daemon=True)
+            flask_thread.start()
+            
+            # Используем polling
+            await bot_app.updater.start_polling()
         
         logger.info("✅ Бот запущен и готов к работе!")
         
         # Запускаем бота
         await bot_app.initialize()
         await bot_app.start()
-        await bot_app.updater.start_polling()
         
         # Бесконечный цикл для поддержания работы бота
         while True:
