@@ -182,13 +182,7 @@ def run_flask():
 
 # Запуск бота
 async def run_bot():
-    # Удаляем предыдущие вебхуки
-    async with Application.builder().token(BOT_TOKEN).build() as app:
-        await app.bot.delete_webhook(drop_pending_updates=True)
-    
-    bot_app = Application.builder() \
-        .token(BOT_TOKEN) \
-        .build()
+    bot_app = Application.builder().token(BOT_TOKEN).build()
     
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
@@ -196,7 +190,11 @@ async def run_bot():
     bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
     logger.info("✅ Бот запущен и готов к работе!")
-    await bot_app.run_polling()
+    
+    async with bot_app:
+        await bot_app.start()
+        await bot_app.updater.start_polling()
+        await bot_app.stop()
 
 if __name__ == "__main__":
     flask_thread = Thread(target=run_flask, daemon=True)
@@ -204,5 +202,7 @@ if __name__ == "__main__":
     
     try:
         asyncio.run(run_bot())
+    except KeyboardInterrupt:
+        pass
     except Exception as e:
         logger.error(f"❌ Критическая ошибка: {e}")
