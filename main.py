@@ -281,7 +281,9 @@ async def main():
         # Закрываем предыдущие соединения перед запуском
         await close_previous_connections()
         
-        logger.info("🔄 Инициализация бота...")
+        logger.info(f"🔄 Проверка токена бота: {'ЕСТЬ' if BOT_TOKEN else 'НЕТ'}")
+        
+        # Создаем приложение
         bot_app = Application.builder().token(BOT_TOKEN).build()
         
         # Добавляем обработчики
@@ -296,25 +298,12 @@ async def main():
         flask_thread = Thread(target=run_flask, daemon=True)
         flask_thread.start()
         
-        # Инициализация и запуск бота
-        await bot_app.initialize()
-        await bot_app.start()
+        # Явно отключаем вебхук (на всякий случай)
+        await bot_app.bot.delete_webhook(drop_pending_updates=True)
         
-        logger.info("✅ Бот запущен и готов к работе!")
+        logger.info("🔄 Запускаем polling...")
+        await bot_app.run_polling()
         
-        # Бесконечный цикл
-        while True:
-            await asyncio.sleep(1)
-            
     except Exception as e:
         logger.error(f"❌ Критическая ошибка: {e}", exc_info=True)
         raise
-
-if __name__ == "__main__":
-    try:
-        logger.info("🚀 Запуск приложения...")
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("⏹ Бот остановлен пользователем")
-    except Exception as e:
-        logger.error(f"💥 Критическая ошибка: {e}", exc_info=True)
