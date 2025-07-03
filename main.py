@@ -180,29 +180,36 @@ async def back_to_start(update: Update, context):
 def run_flask():
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
 
-# Запуск бота
-async def run_bot():
+# Основная функция для запуска бота
+async def main():
+    # Создаем приложение бота
     bot_app = Application.builder().token(BOT_TOKEN).build()
     
+    # Добавляем обработчики
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
     bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
     bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
-    logger.info("✅ Бот запущен и готов к работе!")
-    
-    async with bot_app:
-        await bot_app.start()
-        await bot_app.updater.start_polling()
-        await bot_app.stop()
-
-if __name__ == "__main__":
+    # Запускаем Flask в отдельном потоке
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     
+    logger.info("✅ Бот запущен и готов к работе!")
+    
+    # Запускаем бота
+    await bot_app.initialize()
+    await bot_app.start()
+    await bot_app.updater.start_polling()
+    
+    # Бесконечный цикл для поддержания работы бота
+    while True:
+        await asyncio.sleep(1)
+
+if __name__ == "__main__":
     try:
-        asyncio.run(run_bot())
+        asyncio.run(main())
     except KeyboardInterrupt:
-        pass
+        logger.info("Бот остановлен пользователем")
     except Exception as e:
         logger.error(f"❌ Критическая ошибка: {e}")
