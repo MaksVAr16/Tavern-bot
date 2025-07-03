@@ -6,7 +6,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from flask import Flask, request
 from dotenv import load_dotenv
-import psycopg2
+import psycopg2  # ✅ Используется psycopg2, как и должно быть
 
 # Настройка логов
 logging.basicConfig(
@@ -26,6 +26,7 @@ MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere "
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = Flask(__name__)
+
 
 # Инициализация базы данных
 def init_db():
@@ -83,6 +84,10 @@ def is_user_registered(user_id: str) -> bool:
             conn.close()
 
 
+# Инициализация БД при старте
+init_db()
+
+
 # Вебхук для регистрации
 @app.route('/1win_webhook', methods=['GET'])
 def handle_webhook():
@@ -112,18 +117,18 @@ async def start(update: Update, context):
     ]
     if update.callback_query:
         await update.callback_query.edit_message_text(
-            "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
+            "🎰 <b>Ты почти у цели</b>\n\n"
             "1. Нажми «Зарегистрироваться»\n"
-            "2. Создай <b>НОВЫЙ аккаунт</b>\n"
+            "2. Создай новый аккаунт\n"
             "3. Нажми «Я зарегистрировался»",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
     else:
         await update.message.reply_text(
-            "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
+            "🎰 <b>Ты почти у цели</b>\n\n"
             "1. Нажми «Зарегистрироваться»\n"
-            "2. Создай <b>НОВЫЙ аккаунт</b>\n"
+            "2. Создай новый аккаунт\n"
             "3. Нажми «Я зарегистрировался»",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
@@ -179,9 +184,9 @@ async def back_to_start(update: Update, context):
         ]
     ]
     await update.callback_query.edit_message_text(
-        "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
+        "🎰 <b>Ты почти у цели</b>\n\n"
         "1. Нажми «Зарегистрироваться»\n"
-        "2. Создай <b>НОВЫЙ аккаунт</b>\n"
+        "2. Создай новый аккаунт\n"
         "3. Нажми «Я зарегистрировался»",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
