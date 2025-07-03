@@ -284,17 +284,17 @@ async def main():
         logger.info("🔄 Инициализация бота...")
         bot_app = Application.builder().token(BOT_TOKEN).build()
         
+        # Инициализация перед добавлением обработчиков (ИСПРАВЛЕНИЕ)
+        await bot_app.initialize()
+        
         # Добавляем обработчики
         bot_app.add_handler(CommandHandler("start", start))
         bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
         bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
         bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
         
-        # ==============================================
-        # ВРЕМЕННО ДОБАВЛЯЕМ КОМАНДУ ДЛЯ ПРОВЕРКИ БД
-        # (можно безопасно удалить после проверки)
+        # Временная команда для проверки БД
         bot_app.add_handler(CommandHandler("checkdb", check_db))
-        # ==============================================
         
         # Запускаем Flask в отдельном потоке
         logger.info("🔄 Запуск Flask в отдельном потоке...")
@@ -303,12 +303,9 @@ async def main():
         
         # Используем polling
         await bot_app.updater.start_polling()
+        await bot_app.start()
         
         logger.info("✅ Бот запущен и готов к работе!")
-        
-        # Запускаем бота
-        await bot_app.initialize()
-        await bot_app.start()
         
         # Бесконечный цикл для поддержания работы бота
         while True:
