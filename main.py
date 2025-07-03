@@ -152,14 +152,12 @@ async def start(update: Update, context):
         )
         
         if update.callback_query:
-            logger.debug(f"🔄 Редактирование сообщения для user_id={user_id}")
             await update.callback_query.edit_message_text(
                 message_text,
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
         else:
-            logger.debug(f"🔄 Отправка нового сообщения для user_id={user_id}")
             await update.message.reply_text(
                 message_text,
                 reply_markup=InlineKeyboardMarkup(keyboard),
@@ -199,7 +197,6 @@ async def check_registration(update: Update, context):
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
-        logger.debug(f"✅ Обновлено сообщение для user_id={user_id}")
     except Exception as e:
         logger.error(f"❌ Ошибка проверки регистрации для user_id={user_id}: {e}", exc_info=True)
         await update.callback_query.edit_message_text("⚠️ Ошибка сервера")
@@ -246,51 +243,20 @@ async def back_to_start(update: Update, context):
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
-        logger.info(f"✅ Успешно обработан возврат в начало для user_id={user_id}")
     except Exception as e:
         logger.error(f"❌ Ошибка обработки возврата для user_id={user_id}: {e}", exc_info=True)
 
 # Запуск Flask
 def run_flask():
-<<<<<<< HEAD
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
-
-# Запуск бота
-async def run_bot():
-    bot_app = Application.builder().token(BOT_TOKEN).build()
-    
-    bot_app.add_handler(CommandHandler("start", start))
-    bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
-    bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
-    bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
-    
-    logger.info("✅ Бот запущен и готов к работе!")
-    
-    async with bot_app:
-        await bot_app.start()
-        await bot_app.updater.start_polling()
-        await bot_app.stop()
-
-if __name__ == "__main__":
-    flask_thread = Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    
     try:
-        asyncio.run(run_bot())
-    except KeyboardInterrupt:
-        pass
-=======
-    try:
-        port = int(os.getenv('PORT', 10000))
+        port = 10000  # Жестко заданный порт
         logger.info(f"🔄 Запуск Flask сервера на порту {port}")
-        app.run(host='0.0.0.0', port=port)
->>>>>>> 67f90c47578ec9d277c907b4db68a106d8ccede1
+        app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
     except Exception as e:
-        logger.error(f"❌ Критическая ошибка Flask: {e}", exc_info=True)
+        logger.error(f"❌ Ошибка Flask: {e}", exc_info=True)
         raise
 
 async def close_previous_connections():
-    """Закрывает предыдущие соединения бота с Telegram API"""
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -307,32 +273,49 @@ async def close_previous_connections():
 # Основная функция для запуска бота
 async def main():
     try:
-        # Закрываем предыдущие соединения перед запуском
+        # Проверка обязательных переменных
+        if not BOT_TOKEN:
+            raise ValueError("❌ Не задан BOT_TOKEN")
+        if not DATABASE_URL:
+            raise ValueError("❌ Не задан DATABASE_URL")
+            
         await close_previous_connections()
         
-        logger.info(f"🔄 Проверка токена бота: {'ЕСТЬ' if BOT_TOKEN else 'НЕТ'}")
-        
-        # Создаем приложение
+        logger.info("🔄 Инициализация бота...")
         bot_app = Application.builder().token(BOT_TOKEN).build()
         
         # Добавляем обработчики
         bot_app.add_handler(CommandHandler("start", start))
+        bot_app.add_handler(CommandHandler("checkdb", check_db))  # Сохранили проверочную команду
         bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
         bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
         bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
-        bot_app.add_handler(CommandHandler("checkdb", check_db))
         
         # Запускаем Flask в отдельном потоке
         logger.info("🔄 Запуск Flask в отдельном потоке...")
         flask_thread = Thread(target=run_flask, daemon=True)
         flask_thread.start()
         
-        # Явно отключаем вебхук (на всякий случай)
-        await bot_app.bot.delete_webhook(drop_pending_updates=True)
+        # Запускаем бота
+        logger.info("🔄 Запуск бота...")
+        await bot_app.initialize()
+        await bot_app.start()
+        await bot_app.updater.start_polling()
         
-        logger.info("🔄 Запускаем polling...")
-        await bot_app.run_polling()
+        logger.info("✅ Бот успешно запущен и готов к работе!")
         
+        # Бесконечный цикл
+        while True:
+            await asyncio.sleep(1)
+            
     except Exception as e:
         logger.error(f"❌ Критическая ошибка: {e}", exc_info=True)
         raise
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("⏹ Бот остановлен пользователем")
+    except Exception as e:
+        logger.error(f"💥 Фатальная ошибка: {e}", exc_info=True)
