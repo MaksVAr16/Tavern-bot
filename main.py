@@ -1,12 +1,12 @@
 import os
 import logging
 import asyncio
+import psycopg2
 from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from flask import Flask, request
 from dotenv import load_dotenv
-import psycopg2
 
 # Настройка логов
 logging.basicConfig(
@@ -21,13 +21,13 @@ load_dotenv()
 # Конфиг
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
-SUPPORT_LINK = " https://t.me/Maksimmm16 "
-MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere "
+SUPPORT_LINK = "https://t.me/Maksimmm16"
+MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = Flask(__name__)
 
-# Подключение к базе данных
+# Инициализация базы данных
 def init_db():
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -46,7 +46,6 @@ def init_db():
         if 'conn' in locals():
             conn.close()
 
-
 def save_user_id(user_id: str):
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -62,7 +61,6 @@ def save_user_id(user_id: str):
     finally:
         if 'conn' in locals():
             conn.close()
-
 
 def is_user_registered(user_id: str) -> bool:
     try:
@@ -82,10 +80,8 @@ def is_user_registered(user_id: str) -> bool:
         if 'conn' in locals():
             conn.close()
 
-
 # Инициализация БД при старте
 init_db()
-
 
 # Вебхук для регистрации
 @app.route('/1win_webhook', methods=['GET'])
@@ -94,7 +90,7 @@ def handle_webhook():
         user_id = request.args.get('user_id')
         status = request.args.get('status')
         logger.info(f"🔄 Вебхук получен: user_id={user_id}, status={status}")
-
+        
         if status == "success" and user_id:
             save_user_id(user_id)
             logger.info(f"✅ Юзер {user_id} зарегистрирован")
@@ -103,7 +99,6 @@ def handle_webhook():
     except Exception as e:
         logger.error(f"❌ Ошибка вебхука: {e}")
         return "Server Error", 500
-
 
 # Команда /start
 async def start(update: Update, context):
@@ -116,23 +111,22 @@ async def start(update: Update, context):
     ]
     if update.callback_query:
         await update.callback_query.edit_message_text(
-            "🎰 <b>Ты почти у цели</b>\n\n"
+            "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
             "1. Нажми «Зарегистрироваться»\n"
-            "2. Создай новый аккаунт\n"
+            "2. Создай <b>НОВЫЙ аккаунт</b>\n"
             "3. Нажми «Я зарегистрировался»",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
     else:
         await update.message.reply_text(
-            "🎰 <b>Ты почти у цели</b>\n\n"
+            "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
             "1. Нажми «Зарегистрироваться»\n"
-            "2. Создай новый аккаунт\n"
+            "2. Создай <b>НОВЫЙ аккаунт</b>\n"
             "3. Нажми «Я зарегистрировался»",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
-
 
 # Проверка регистрации
 async def check_registration(update: Update, context):
@@ -150,6 +144,7 @@ async def check_registration(update: Update, context):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
             ]
             text = "❌ <b>Регистрация не найдена!</b>"
+        
         await update.callback_query.edit_message_text(
             text,
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -159,7 +154,6 @@ async def check_registration(update: Update, context):
         logger.error(f"❌ Ошибка проверки регистрации: {e}")
         await update.callback_query.edit_message_text("⚠️ Ошибка сервера")
 
-
 # Кнопка помощи
 async def help_button(update: Update, context):
     keyboard = [
@@ -167,11 +161,11 @@ async def help_button(update: Update, context):
         [InlineKeyboardButton("📞 Менеджер", url=SUPPORT_LINK)]
     ]
     await update.callback_query.edit_message_text(
-        "🛠 <b>Центр помощи</b>\n\nДля связи с менеджером:",
+        "🛠 <b>Центр помощи</b>\n\n"
+        "Для связи с менеджером:",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
     )
-
 
 # Назад в начало
 async def back_to_start(update: Update, context):
@@ -183,37 +177,40 @@ async def back_to_start(update: Update, context):
         ]
     ]
     await update.callback_query.edit_message_text(
-        "🎰 <b>Ты почти у цели</b>\n\n"
+        "🎰 <b>Ты уже на полпути к победе...</b>\n\n"
         "1. Нажми «Зарегистрироваться»\n"
-        "2. Создай новый аккаунт\n"
+        "2. Создай <b>НОВЫЙ аккаунт</b>\n"
         "3. Нажми «Я зарегистрировался»",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
     )
 
-
 # Запуск Flask
 def run_flask():
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
 
-
 # Запуск бота
 async def run_bot():
-    bot_app = Application.builder().token(BOT_TOKEN).build()
+    # Удаляем предыдущие вебхуки
+    async with Application.builder().token(BOT_TOKEN).build() as app:
+        await app.bot.delete_webhook(drop_pending_updates=True)
+    
+    bot_app = Application.builder() \
+        .token(BOT_TOKEN) \
+        .build()
+    
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
     bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
     bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
-
+    
     logger.info("✅ Бот запущен и готов к работе!")
     await bot_app.run_polling()
 
-
-# Главная точка входа
 if __name__ == "__main__":
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
-
+    
     try:
         asyncio.run(run_bot())
     except Exception as e:
