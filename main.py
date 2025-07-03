@@ -29,25 +29,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = Flask(__name__)
 
-# ==============================================
-# ВРЕМЕННАЯ КОМАНДА ДЛЯ ПРОВЕРКИ БАЗЫ ДАННЫХ
-# (можно безопасно удалить после проверки)
-# ==============================================
-async def check_db(update: Update, context):
-    """Временная команда для проверки подключения к базе данных"""
-    try:
-        with psycopg.connect(DATABASE_URL) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT 1")
-                await update.message.reply_text("✅ Подключение к БД успешно!")
-                # Дополнительная проверка таблицы
-                cursor.execute("SELECT COUNT(*) FROM registered_users")
-                count = cursor.fetchone()[0]
-                await update.message.reply_text(f"📊 В базе {count} записей")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Ошибка подключения к БД: {str(e)}")
-# ==============================================
-
 # Генератор партнерской ссылки с user_id
 def generate_partner_url(user_id: str) -> str:
     url = f"{BASE_PARTNER_URL}&ref={user_id}"
@@ -128,6 +109,53 @@ def handle_webhook():
     except Exception as e:
         logger.error(f"❌ Критическая ошибка в обработке вебхука: {e}", exc_info=True)
         return "Server Error", 500
+
+# ===== DEBUG FUNCTIONS START =====
+@app.route('/debug_db')
+def debug_db():
+    """Отладочная страница для проверки базы данных"""
+    try:
+        result = []
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cursor:
+                # Проверка подключения
+                cursor.execute("SELECT 1")
+                result.append("✅ Подключение к Neon: работает")
+                
+                # Проверка количества записей
+                cursor.execute("SELECT COUNT(*) FROM registered_users")
+                count = cursor.fetchone()[0]
+                result.append(f"📊 Всего записей: {count}")
+                
+                # Последние 5 записей
+                cursor.execute("SELECT user_id, timestamp FROM registered_users ORDER BY timestamp DESC LIMIT 5")
+                result.append("\nПоследние 5 записей:")
+                for row in cursor.fetchall():
+                    result.append(f"👤 {row[0]} - {row[1]}")
+        
+        return "<pre>" + "\n".join(result) + "</pre>"
+    except Exception as e:
+        return f"❌ Ошибка: {str(e)}"
+
+async def debug_command(update: Update, context):
+    """Команда /debug для проверки базы"""
+    try:
+        # Получаем статистику
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) FROM registered_users")
+                count = cursor.fetchone()[0]
+        
+        await update.message.reply_text(
+            f"🛠️ <b>Отладочная информация</b>\n\n"
+            f"• Подключение к Neon: <b>работает</b>\n"
+            f"• Записей в базе: <b>{count}</b>\n\n"
+            f"Полный отчёт: https://{os.getenv('RENDER_SERVICE_NAME')}.onrender.com/debug_db",
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {str(e)}")
+# ===== DEBUG FUNCTIONS END =====
 
 # Команда /start
 async def start(update: Update, context):
@@ -286,7 +314,7 @@ async def main():
         
         # Добавляем обработчики
         bot_app.add_handler(CommandHandler("start", start))
-        bot_app.add_handler(CommandHandler("checkdb", check_db))  # Сохранили проверочную команду
+        bot_app.add_handler(CommandHandler("debug", debug_command))  # Добавлена новая команда
         bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
         bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
         bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
