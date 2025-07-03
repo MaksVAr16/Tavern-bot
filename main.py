@@ -6,7 +6,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from flask import Flask, request
 from dotenv import load_dotenv
-import psycopg2  # ✅ Используется psycopg2, как и должно быть
+import psycopg2
 
 # Настройка логов
 logging.basicConfig(
@@ -27,8 +27,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = Flask(__name__)
 
-
-# Инициализация базы данных
+# Подключение к базе данных
 def init_db():
     try:
         conn = psycopg2.connect(DATABASE_URL)
