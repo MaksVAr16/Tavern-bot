@@ -1,5 +1,5 @@
-psycopg[binary]==3.2.9
 python-telegram-bot==20.4
-python-dotenv==1.0.0
 flask==2.3.2
+psycopg[binary]==3.2.9
 httpx==0.24.1
+python-dotenv==1.0.0
