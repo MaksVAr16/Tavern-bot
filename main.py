@@ -26,14 +26,18 @@ BASE_PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
 DATABASE_URL = os.getenv("DATABASE_URL")
+RENDER_SERVICE_NAME = os.getenv("RENDER_SERVICE_NAME")  # Добавьте в .env (например: tavern-bot)
 
 app = Flask(__name__)
 
-# Генератор партнерской ссылки с user_id
+# ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ ЕДИНСТВЕННОЕ ИЗМЕНЕНИЕ ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 def generate_partner_url(user_id: str) -> str:
-    url = f"{BASE_PARTNER_URL}&ref={user_id}"
+    """Генерирует партнёрскую ссылку с callback URL"""
+    callback_url = f"https://{RENDER_SERVICE_NAME}.onrender.com/1win_webhook"
+    url = f"{BASE_PARTNER_URL}&ref={user_id}&callback={callback_url}"
     logger.debug(f"🔗 Сгенерирована партнерская ссылка для user_id={user_id}: {url}")
     return url
+# ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ ЕДИНСТВЕННОЕ ИЗМЕНЕНИЕ ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 # Инициализация базы данных
 def init_db():
@@ -314,7 +318,7 @@ async def main():
         
         # Добавляем обработчики
         bot_app.add_handler(CommandHandler("start", start))
-        bot_app.add_handler(CommandHandler("debug", debug_command))  # Добавлена новая команда
+        bot_app.add_handler(CommandHandler("debug", debug_command))
         bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
         bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
         bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
