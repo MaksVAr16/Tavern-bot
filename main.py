@@ -284,16 +284,11 @@ async def main():
         logger.info("🔄 Инициализация бота...")
         bot_app = Application.builder().token(BOT_TOKEN).build()
         
-        # Инициализация перед добавлением обработчиков (ИСПРАВЛЕНИЕ)
-        await bot_app.initialize()
-        
         # Добавляем обработчики
         bot_app.add_handler(CommandHandler("start", start))
         bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
         bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
         bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
-        
-        # Временная команда для проверки БД
         bot_app.add_handler(CommandHandler("checkdb", check_db))
         
         # Запускаем Flask в отдельном потоке
@@ -301,17 +296,18 @@ async def main():
         flask_thread = Thread(target=run_flask, daemon=True)
         flask_thread.start()
         
-        # Используем polling
-        await bot_app.updater.start_polling()
+        # Инициализация и запуск бота
+        await bot_app.initialize()
         await bot_app.start()
         
         logger.info("✅ Бот запущен и готов к работе!")
         
-        # Бесконечный цикл для поддержания работы бота
+        # Бесконечный цикл
         while True:
             await asyncio.sleep(1)
+            
     except Exception as e:
-        logger.error(f"❌ Критическая ошибка в main(): {e}", exc_info=True)
+        logger.error(f"❌ Критическая ошибка: {e}", exc_info=True)
         raise
 
 if __name__ == "__main__":
