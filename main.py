@@ -26,9 +26,27 @@ BASE_PARTNER_URL = "https://1wilib.life/?open=register&p=2z3v"
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 MINI_APP_URL = "https://t.me/Tavern_Rulet_bot/ere"
 DATABASE_URL = os.getenv("DATABASE_URL")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")  # Добавим переменную для вебхука
 
 app = Flask(__name__)
+
+# ==============================================
+# ВРЕМЕННАЯ КОМАНДА ДЛЯ ПРОВЕРКИ БАЗЫ ДАННЫХ
+# (можно безопасно удалить после проверки)
+# ==============================================
+async def check_db(update: Update, context):
+    """Временная команда для проверки подключения к базе данных"""
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                await update.message.reply_text("✅ Подключение к БД успешно!")
+                # Дополнительная проверка таблицы
+                cursor.execute("SELECT COUNT(*) FROM registered_users")
+                count = cursor.fetchone()[0]
+                await update.message.reply_text(f"📊 В базе {count} записей")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка подключения к БД: {str(e)}")
+# ==============================================
 
 # Генератор партнерской ссылки с user_id
 def generate_partner_url(user_id: str) -> str:
@@ -246,7 +264,6 @@ async def close_previous_connections():
     """Закрывает предыдущие соединения бота с Telegram API"""
     try:
         async with httpx.AsyncClient() as client:
-            # Закрываем все предыдущие соединения
             response = await client.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/close",
                 timeout=10
@@ -273,23 +290,19 @@ async def main():
         bot_app.add_handler(CallbackQueryHandler(help_button, pattern="^help$"))
         bot_app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
         
-        # Если указан URL для вебхука, используем webhook вместо polling
-        if WEBHOOK_URL:
-            logger.info("🔄 Настройка webhook...")
-            await bot_app.updater.start_webhook(
-                listen="0.0.0.0",
-                port=int(os.getenv('PORT', 10000)),
-                url_path=BOT_TOKEN,
-                webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
-            )
-        else:
-            # Запускаем Flask в отдельном потоке
-            logger.info("🔄 Запуск Flask в отдельном потоке...")
-            flask_thread = Thread(target=run_flask, daemon=True)
-            flask_thread.start()
-            
-            # Используем polling
-            await bot_app.updater.start_polling()
+        # ==============================================
+        # ВРЕМЕННО ДОБАВЛЯЕМ КОМАНДУ ДЛЯ ПРОВЕРКИ БД
+        # (можно безопасно удалить после проверки)
+        bot_app.add_handler(CommandHandler("checkdb", check_db))
+        # ==============================================
+        
+        # Запускаем Flask в отдельном потоке
+        logger.info("🔄 Запуск Flask в отдельном потоке...")
+        flask_thread = Thread(target=run_flask, daemon=True)
+        flask_thread.start()
+        
+        # Используем polling
+        await bot_app.updater.start_polling()
         
         logger.info("✅ Бот запущен и готов к работе!")
         
