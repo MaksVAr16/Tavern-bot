@@ -185,27 +185,40 @@ def run_bot():
     application = Application.builder().token(BOT_TOKEN).build()
     
     # Отключаем все возможные webhook
-    application.bot.delete_webhook(drop_pending_updates=True)
-    time.sleep(1)
+    try:
+        application.bot.delete_webhook(drop_pending_updates=True)
+        time.sleep(1)
+        logger.info("✅ Webhook успешно удалён")
+    except Exception as e:
+        logger.error(f"❌ Ошибка при удалении webhook: {e}")
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
     application.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
     application.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
+    logger.info("🟢 Бот запущен в режиме polling")
     application.run_polling(
         allowed_updates=Update.ALL_TYPES,
-        close_loop=True,  # Критически важно!
+        close_loop=True,
         stop_signals=[]
     )
 
 if __name__ == "__main__":
-    # Принудительно завершаем все старые процессы
-    os.system("pkill -f python")
-    time.sleep(2)
+    # Убрали pkill, так как он убивал сам процесс
+    logger.info("🚀 Запуск бота...")
     
-    if not os.environ.get("BOT_STARTED"):
-        os.environ["BOT_STARTED"] = "1"
-        threading.Thread(target=self_ping, daemon=True).start()
-        threading.Thread(target=app.run, kwargs={'host':'0.0.0.0','port':8080}, daemon=True).start()
-        run_bot()
+    # Запускаем Flask в отдельном потоке
+    flask_thread = threading.Thread(
+        target=app.run,
+        kwargs={'host': '0.0.0.0', 'port': 8080, 'debug': False, 'use_reloader': False},
+        daemon=True
+    )
+    flask_thread.start()
+    
+    # Запускаем self-ping в отдельном потоке
+    ping_thread = threading.Thread(target=self_ping, daemon=True)
+    ping_thread.start()
+    
+    # Запускаем самого бота
+    run_bot()
