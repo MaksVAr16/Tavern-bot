@@ -1,28 +1,35 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler
-from telegram.ext.filters import Filters
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    CallbackQueryHandler,
+    CallbackContext,
+    MessageHandler,
+    filters
+)
 import os
 
 # Настройки
 TOKEN = '7888723857:AAHKmSMXxKFBiUpcgEDp0w_5Omh8SZhaW9I'
-REG_CHANNEL = '-1002739343436'  # Канал с регистрациями
-DEPOSIT_CHANNEL = '-1002690483167'  # Канал с депозитами
-SUPPORT_LINK = 'https://t.me/Maksimmm16'  # Ссылка на поддержку
-VIP_BOT_LINK = 'https://t.me/TESTVIPP_BOT'  # Ссылка на VIP-бота
-CHANNEL_LINK = 'https://t.me/your_channel'  # Ссылка на канал
-PARTNER_LINK = 'https://tavern-bot.onrender.com'  # Партнерская ссылка
-MINI_APP_LINK = 'https://t.me/Tavern_Rulet_bot/myapp'  # Ссылка на MiniApp
+REG_CHANNEL = '@+-1002739343436'
+DEPOSIT_CHANNEL = '@+-1002690483167'
+SUPPORT_LINK = 'https://t.me/Maksimmm16'
+VIP_BOT_LINK = 'https://t.me/TESTVIPP_BOT'
+CHANNEL_LINK = 'https://t.me/your_channel'
+PARTNER_LINK = 'https://tavern-bot.onrender.com'
+MINI_APP_LINK = 'https://t.me/Tavern_Rulet_bot/myapp'
 
-# Путь к папке с изображениями
+# Путь к изображениям
 IMAGE_FOLDER = r'C:\Users\Maks\Desktop\Traffic\BOT\telegram-casino-bot\rturtyk'
 
 # Уровни пользователей
 USER_LEVELS = {}
 
-# Включим логирование
+# Логирование
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
@@ -53,7 +60,6 @@ TEXTS = {
     }
 }
 
-# Функция для проверки регистрации/депозита
 def check_user_in_channel(user_id: int, channel: str, context: CallbackContext) -> bool:
     try:
         messages = context.bot.get_chat_history(chat_id=channel, limit=100)
@@ -64,10 +70,9 @@ def check_user_in_channel(user_id: int, channel: str, context: CallbackContext) 
         logger.error(f"Error checking channel: {e}")
     return False
 
-# Обработчик команды /start
 def start(update: Update, context: CallbackContext) -> None:
     user_id = update.effective_user.id
-    USER_LEVELS[user_id] = 0  # Устанавливаем начальный уровень
+    USER_LEVELS[user_id] = 0
     
     keyboard = [
         [InlineKeyboardButton("🚀 Зарегистрироваться", url=PARTNER_LINK)],
@@ -76,7 +81,6 @@ def start(update: Update, context: CallbackContext) -> None:
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # Отправляем изображение (если есть)
     photo = None
     if os.path.exists(IMAGE_PATHS['start']):
         photo = InputFile(IMAGE_PATHS['start'])
@@ -95,7 +99,6 @@ def start(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
 
-# Обработчик раздела помощи
 def help_section(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     query.answer()
@@ -106,7 +109,6 @@ def help_section(update: Update, context: CallbackContext) -> None:
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # Отправляем изображение (если есть)
     photo = None
     if os.path.exists(IMAGE_PATHS['help']):
         photo = InputFile(IMAGE_PATHS['help'])
@@ -125,14 +127,13 @@ def help_section(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
 
-# Проверка регистрации
 def check_registration(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     user_id = update.effective_user.id
     query.answer()
     
     if check_user_in_channel(user_id, REG_CHANNEL, context):
-        USER_LEVELS[user_id] = 1  # Переводим на уровень 1
+        USER_LEVELS[user_id] = 1
         show_level(update, context, 1)
     else:
         keyboard = [
@@ -147,7 +148,6 @@ def check_registration(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
 
-# Проверка депозита
 def check_deposit(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     user_id = update.effective_user.id
@@ -156,7 +156,7 @@ def check_deposit(update: Update, context: CallbackContext) -> None:
     current_level = USER_LEVELS.get(user_id, 0)
     
     if check_user_in_channel(user_id, DEPOSIT_CHANNEL, context):
-        USER_LEVELS[user_id] = current_level + 1  # Повышаем уровень
+        USER_LEVELS[user_id] = current_level + 1
         show_level(update, context, current_level + 1)
     else:
         keyboard = [
@@ -172,7 +172,6 @@ def check_deposit(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
 
-# Показать уровень
 def show_level(update: Update, context: CallbackContext, level: int) -> None:
     query = update.callback_query
     level_data = TEXTS['levels'].get(level)
@@ -189,13 +188,12 @@ def show_level(update: Update, context: CallbackContext, level: int) -> None:
             [InlineKeyboardButton(level_data[2], callback_data=f'check_deposit_{level}')],
             [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
         ]
-    else:  # VIP уровень
+    else:
         show_vip(update, context)
         return
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # Отправляем изображение (если есть)
     photo = None
     image_key = f'level{level}' if level < 5 else 'vip'
     if os.path.exists(IMAGE_PATHS.get(image_key, '')):
@@ -215,7 +213,6 @@ def show_level(update: Update, context: CallbackContext, level: int) -> None:
             reply_markup=reply_markup
         )
 
-# Показать VIP-доступ
 def show_vip(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     
@@ -227,7 +224,6 @@ def show_vip(update: Update, context: CallbackContext) -> None:
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # Отправляем изображение (если есть)
     photo = None
     if os.path.exists(IMAGE_PATHS['vip']):
         photo = InputFile(IMAGE_PATHS['vip'])
@@ -246,7 +242,6 @@ def show_vip(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
 
-# Обработчик вращения рулетки
 def spin(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     query.answer()
@@ -256,7 +251,6 @@ def spin(update: Update, context: CallbackContext) -> None:
         parse_mode='MarkdownV2'
     )
     
-    # Предлагаем перейти на уровень 2
     keyboard = [
         [InlineKeyboardButton("💎 VIP-доступ", url=PARTNER_LINK)],
         [InlineKeyboardButton("Перейти на Уровень 2", callback_data='level_2')]
@@ -269,14 +263,12 @@ def spin(update: Update, context: CallbackContext) -> None:
         reply_markup=reply_markup
     )
 
-# Назад в начало
 def back_to_start(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     query.answer()
     start(update, context)
     query.delete_message()
 
-# Обработчик ошибок
 def error(update: Update, context: CallbackContext) -> None:
     logger.warning(f'Update {update} caused error {context.error}')
 
@@ -284,21 +276,14 @@ def main() -> None:
     updater = Updater(TOKEN)
     dispatcher = updater.dispatcher
 
-    # Обработчики команд
     dispatcher.add_handler(CommandHandler('start', start))
     dispatcher.add_handler(CallbackQueryHandler(help_section, pattern='^help$'))
     dispatcher.add_handler(CallbackQueryHandler(check_registration, pattern='^check_reg$'))
     dispatcher.add_handler(CallbackQueryHandler(spin, pattern='^spin$'))
     dispatcher.add_handler(CallbackQueryHandler(back_to_start, pattern='^back_to_start$'))
     dispatcher.add_handler(CallbackQueryHandler(show_vip, pattern='^vip$'))
-    
-    # Обработчики уровней
     dispatcher.add_handler(CallbackQueryHandler(show_level, pattern='^level_[1-5]$'))
-    
-    # Обработчики проверки депозита
     dispatcher.add_handler(CallbackQueryHandler(check_deposit, pattern='^check_deposit_[1-5]$'))
-    
-    # Обработчик ошибок
     dispatcher.add_error_handler(error)
 
     updater.start_polling()
