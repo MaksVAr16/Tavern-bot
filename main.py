@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 def self_ping():
     while True:
         try:
-            requests.get("https://ваш-бот.onrender.com")  # ЗАМЕНИТЕ ПОСЛЕ ДЕПЛОЯ!
+            requests.get("https://tavern-bot.onrender.com")  # ЗАМЕНИТЕ ПОСЛЕ ДЕПЛОЯ!
         except Exception as e:
             logging.error(f"Self-ping error: {e}")
         time.sleep(240)  # Пинг каждые 4 минуты
