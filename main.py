@@ -1,15 +1,16 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler
+from telegram.ext.filters import Filters
 import os
 
 # Настройки
-TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+TOKEN = '7888723857:AAHKmSMXxKFBiUpcgEDp0w_5Omh8SZhaW9I'
 REG_CHANNEL = '-1002739343436'  # Канал с регистрациями
 DEPOSIT_CHANNEL = '-1002690483167'  # Канал с депозитами
 SUPPORT_LINK = 'https://t.me/Maksimmm16'  # Ссылка на поддержку
 VIP_BOT_LINK = 'https://t.me/TESTVIPP_BOT'  # Ссылка на VIP-бота
-CHANNEL_LINK = 'https://t.me/your_channel'  # Ссылка на канал (не указана, оставил заглушку)
+CHANNEL_LINK = 'https://t.me/your_channel'  # Ссылка на канал
 PARTNER_LINK = 'https://tavern-bot.onrender.com'  # Партнерская ссылка
 MINI_APP_LINK = 'https://t.me/Tavern_Rulet_bot/myapp'  # Ссылка на MiniApp
 
@@ -32,6 +33,24 @@ IMAGE_PATHS = {
     'level1': os.path.join(IMAGE_FOLDER, 'level1.jpg'),
     'level2': os.path.join(IMAGE_FOLDER, 'level2.jpg'),
     'vip': os.path.join(IMAGE_FOLDER, 'vip.jpg')
+}
+
+# Тексты сообщений
+TEXTS = {
+    'start': "🔥 Первые 50 игроков получают +1 бесплатное вращение!",
+    'help': "🛠 Используйте только новый аккаунт, иначе бот не увидит регистрацию!",
+    'reg_not_found': "❌ Регистрация не найдена! Попробуйте снова или обратитесь в поддержку.",
+    'deposit_not_found': "⚠️ Депозит не найден! Минимум {amount}₽ для Уровня {level}.",
+    'spin_result': "🎰 Вы получили 3 бесплатных вращения! После вращений перейдите на следующий уровень.",
+    'next_level': "Хотите перейти на следующий уровень?",
+    'vip': "💎 ВЫ ВЫИГРАЛИ VIP-ДОСТУП! Вы в топ-0.1% игроков!",
+    'levels': {
+        1: ("🎉 3 бесплатных вращения! Выигрыши до 5000₽!", "🎰 Крутить рулетку", "💎 VIP-доступ"),
+        2: ("💰 Уровень 2: 5 вращений (депозит от 500₽) + бонусы!", "💳 Пополнить баланс", "🔄 Проверить депозит"),
+        3: ("💰 Уровень 3: 7 вращений (депозит от 1000₽) + бонусы!", "💳 Пополнить баланс", "🔄 Проверить депозит"),
+        4: ("💰 Уровень 4: 10 вращений (депозит от 2000₽) + бонусы!", "💳 Пополнить баланс", "🔄 Проверить депозит"),
+        5: ("💰 Уровень 5: 15 вращений (депозит от 5000₽) + бонусы!", "💳 Пополнить баланс", "🔄 Проверить депозит")
+    }
 }
 
 # Функция для проверки регистрации/депозита
@@ -65,13 +84,13 @@ def start(update: Update, context: CallbackContext) -> None:
     if photo:
         update.message.reply_photo(
             photo=photo,
-            caption="*🔥 Первые 50 игроков получают +1 бесплатное вращение\!*",
+            caption=TEXTS['start'],
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
     else:
         update.message.reply_text(
-            "*🔥 Первые 50 игроков получают +1 бесплатное вращение\!*",
+            TEXTS['start'],
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
@@ -95,13 +114,13 @@ def help_section(update: Update, context: CallbackContext) -> None:
     if photo:
         query.message.reply_photo(
             photo=photo,
-            caption="*🛠 Используйте только новый аккаунт, иначе бот не увидит регистрацию\!*",
+            caption=TEXTS['help'],
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
     else:
         query.message.reply_text(
-            "*🛠 Используйте только новый аккаунт, иначе бот не увидит регистрацию\!*",
+            TEXTS['help'],
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
@@ -123,7 +142,7 @@ def check_registration(update: Update, context: CallbackContext) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         query.edit_message_text(
-            text="*❌ Регистрация не найдена\! Попробуйте снова или обратитесь в поддержку\.*",
+            text=TEXTS['reg_not_found'],
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
@@ -148,7 +167,7 @@ def check_deposit(update: Update, context: CallbackContext) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         query.edit_message_text(
-            text=f"*⚠️ Депозит не найден\! Минимум {500 * current_level}₽ для Уровня {current_level + 1}\.*",
+            text=TEXTS['deposit_not_found'].format(amount=500*current_level, level=current_level+1),
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
@@ -156,25 +175,18 @@ def check_deposit(update: Update, context: CallbackContext) -> None:
 # Показать уровень
 def show_level(update: Update, context: CallbackContext, level: int) -> None:
     query = update.callback_query
-    
-    level_texts = {
-        1: ("🎉 3 бесплатных вращения\! Выигрыши до 5000₽\!", "🎰 Крутить рулетку", "💎 VIP\-доступ"),
-        2: ("💰 Уровень 2: 5 вращений \(депозит от 500₽\) \+ бонусы\!", "💳 Пополнить баланс", "🔄 Проверить депозит"),
-        3: ("💰 Уровень 3: 7 вращений \(депозит от 1000₽\) \+ бонусы\!", "💳 Пополнить баланс", "🔄 Проверить депозит"),
-        4: ("💰 Уровень 4: 10 вращений \(депозит от 2000₽\) \+ бонусы\!", "💳 Пополнить баланс", "🔄 Проверить депозит"),
-        5: ("💰 Уровень 5: 15 вращений \(депозит от 5000₽\) \+ бонусы\!", "💳 Пополнить баланс", "🔄 Проверить депозит")
-    }
+    level_data = TEXTS['levels'].get(level)
     
     if level == 1:
         keyboard = [
-            [InlineKeyboardButton(level_texts[1][1], url=MINI_APP_LINK)],
-            [InlineKeyboardButton(level_texts[1][2], url=PARTNER_LINK)],
+            [InlineKeyboardButton(level_data[1], url=MINI_APP_LINK)],
+            [InlineKeyboardButton(level_data[2], url=PARTNER_LINK)],
             [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
         ]
     elif level < 5:
         keyboard = [
-            [InlineKeyboardButton(level_texts[level][1], url=PARTNER_LINK)],
-            [InlineKeyboardButton(level_texts[level][2], callback_data=f'check_deposit_{level}')],
+            [InlineKeyboardButton(level_data[1], url=PARTNER_LINK)],
+            [InlineKeyboardButton(level_data[2], callback_data=f'check_deposit_{level}')],
             [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
         ]
     else:  # VIP уровень
@@ -192,13 +204,13 @@ def show_level(update: Update, context: CallbackContext, level: int) -> None:
     if photo:
         query.message.reply_photo(
             photo=photo,
-            caption=f"*{level_texts[level][0]}*",
+            caption=level_data[0],
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
     else:
         query.message.reply_text(
-            f"*{level_texts[level][0]}*",
+            level_data[0],
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
@@ -223,13 +235,13 @@ def show_vip(update: Update, context: CallbackContext) -> None:
     if photo:
         query.message.reply_photo(
             photo=photo,
-            caption="*💎 ВЫ ВЫИГРАЛИ VIP\-ДОСТУП\! Вы в топ\-0\.1% игроков\!*",
+            caption=TEXTS['vip'],
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
     else:
         query.message.reply_text(
-            "*💎 ВЫ ВЫИГРАЛИ VIP\-ДОСТУП\! Вы в топ\-0\.1% игроков\!*",
+            TEXTS['vip'],
             parse_mode='MarkdownV2',
             reply_markup=reply_markup
         )
@@ -239,9 +251,8 @@ def spin(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     query.answer()
     
-    # Здесь должна быть логика рулетки, но это заглушка
     query.edit_message_text(
-        text="*🎰 Вы получили 3 бесплатных вращения\! После вращений перейдите на следующий уровень\.*",
+        text=TEXTS['spin_result'],
         parse_mode='MarkdownV2'
     )
     
@@ -253,7 +264,7 @@ def spin(update: Update, context: CallbackContext) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     query.message.reply_text(
-        "*Хотите перейти на следующий уровень?*",
+        TEXTS['next_level'],
         parse_mode='MarkdownV2',
         reply_markup=reply_markup
     )
