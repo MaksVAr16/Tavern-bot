@@ -1,22 +1,35 @@
 import os
 import logging
+import threading
+import requests
+import time
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from dotenv import load_dotenv
 
-# Настройка логов
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+# ================== SELF-PING SYSTEM ================== #
+def self_ping():
+    while True:
+        try:
+            requests.get("https://ваш-бот.onrender.com")  # ЗАМЕНИТЕ ПОСЛЕ ДЕПЛОЯ!
+        except Exception as e:
+            logging.error(f"Self-ping error: {e}")
+        time.sleep(240)  # Пинг каждые 4 минуты
 
+# ================== FLASK SERVER ================== #
+app = Flask(__name__)
+@app.route('/')
+def wake_up():
+    return "Tavern Bot is alive!"
+
+# ================== BOT CORE ================== #
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 PARTNER_LINK = "https://1wilib.life/?open=register&p=2z3v"
-REG_CHANNEL = "@+4T5JdFC8bzBkZmIy"  # Ваш канал регистраций
-DEPOSIT_CHANNEL = "@+Vkx46VQSlTk3ZmYy"  # Ваш канал депозитов
+REG_CHANNEL = "@+4T5JdFC8bzBkZmIy"
+DEPOSIT_CHANNEL = "@+Vkx46VQSlTk3ZmYy"
 
 # Тексты с FOMO
 TEXTS = {
@@ -49,7 +62,6 @@ TEXTS = {
     )
 }
 
-# Заглушки для картинок (замените на свои URL)
 IMAGES = {
     "start": "https://i.ibb.co/.../start.jpg",
     "registered": "https://i.ibb.co/.../reg.jpg",
@@ -128,18 +140,23 @@ async def send_prize(update: Update, prize: str, is_vip: bool = False):
         )
 
 async def spin_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    prize = "Фриспин 50$"  # Замените на логику из рулетки
+    prize = "Фриспин 50$"  # Здесь будет логика рулетки
     await send_prize(update, prize)
 
-def main():
-    app = Application.builder().token(BOT_TOKEN).build()
-    
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
-    app.add_handler(CallbackQueryHandler(check_deposit, pattern="^check_deposit$"))
-    app.add_handler(CallbackQueryHandler(spin_handler, pattern="^spin$"))
-    
-    app.run_polling()
+def run_bot():
+    bot_app = Application.builder().token(BOT_TOKEN).build()
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
+    bot_app.add_handler(CallbackQueryHandler(check_deposit, pattern="^check_deposit$"))
+    bot_app.add_handler(CallbackQueryHandler(spin_handler, pattern="^spin$"))
+    bot_app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    # Запускаем self-ping в отдельном потоке
+    threading.Thread(target=self_ping, daemon=True).start()
+    
+    # Запускаем Flask сервер
+    threading.Thread(target=app.run, kwargs={'host':'0.0.0.0','port':10000}).start()
+    
+    # Запускаем бота
+    run_bot()
