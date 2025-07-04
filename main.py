@@ -15,7 +15,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Self-ping для Render
 def self_ping():
     while True:
         try:
@@ -40,7 +39,6 @@ CHANNEL_LINK = "https://t.me/your_channel"
 REG_CHANNEL = "@+-1002739343436"
 DEPOSIT_CHANNEL = "@+-1002690483167"
 
-# Временные изображения (замените на реальные)
 IMAGES = {
     "start": "https://i.imgur.com/placeholder.jpg",
     "help": "https://i.imgur.com/placeholder.jpg",
@@ -60,7 +58,6 @@ LEVELS = {
     5: {"attempts": 25, "deposit": 15000, "text": "🏆 <b>Уровень 5: 25 вращений (депозит от 15000₽)</b>"}
 }
 
-# ================== КЛАВИАТУРЫ ================== #
 def get_start_keyboard():
     return [
         [InlineKeyboardButton("🚀 Зарегистрироваться", url=PARTNER_LINK)],
@@ -128,7 +125,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await query.edit_message_reply_markup(
             reply_markup=InlineKeyboardMarkup(get_help_keyboard())
-        )
     except Exception as e:
         logger.error(f"Ошибка редактирования: {e}")
         await query.message.reply_photo(
@@ -156,7 +152,7 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "⚠️ Ошибка сервера. Попробуйте позже.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
-            )
+            ])
         )
         return
     
