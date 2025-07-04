@@ -118,13 +118,17 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     try:
-        await query.edit_message_media(
-            media=InputMediaPhoto(IMAGES["help"], 
+        # ИСПРАВЛЕНО: Правильное создание InputMediaPhoto
+        media = InputMediaPhoto(
+            media=IMAGES["help"],
             caption="🛠 <b>Инструкция:</b>\n\n1. Используйте новый аккаунт\n2. Если бот не видит регистрацию - подождите 5 минут",
             parse_mode="HTML"
         )
+        
+        await query.edit_message_media(media=media)
         await query.edit_message_reply_markup(
             reply_markup=InlineKeyboardMarkup(get_help_keyboard())
+        )
     except Exception as e:
         logger.error(f"Ошибка редактирования: {e}")
         await query.message.reply_photo(
@@ -158,11 +162,14 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     if registered:
         try:
-            await query.edit_message_media(
-                media=InputMediaPhoto(IMAGES["level_1"],
+            # ИСПРАВЛЕНО: Правильное создание InputMediaPhoto
+            media = InputMediaPhoto(
+                media=IMAGES["level_1"],
                 caption=LEVELS[1]["text"],
                 parse_mode="HTML"
             )
+            
+            await query.edit_message_media(media=media)
             await query.edit_message_reply_markup(
                 reply_markup=InlineKeyboardMarkup(get_level_keyboard(1))
             )
