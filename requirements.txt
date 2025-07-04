@@ -1,2 +1,5 @@
-python-telegram-bot==20.0
+python-telegram-bot==20.4
 python-dotenv==1.0.0
+httpx==0.24.1  # Совместимая версия с python-telegram-bot
+flask==2.3.2
+requests==2.31.0
