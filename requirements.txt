@@ -1,3 +1,5 @@
-python-telegram-bot==20.4  # Основная библиотека для бота
-python-dotenv==1.0.0       # Для загрузки .env
-httpx==0.24.1              # Для асинхронных HTTP-запросов (если нужно API)
+python-telegram-bot==20.4
+python-dotenv==1.0.0
+httpx==0.24.1  # Совместимая версия с python-telegram-bot
+flask==2.3.2
+requests==2.31.0
