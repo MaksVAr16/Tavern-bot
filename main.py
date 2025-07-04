@@ -187,10 +187,12 @@ def run_bot():
     # Отключаем все возможные webhook
     try:
         application.bot.delete_webhook(drop_pending_updates=True)
-        time.sleep(1)
         logger.info("✅ Webhook успешно удалён")
     except Exception as e:
         logger.error(f"❌ Ошибка при удалении webhook: {e}")
+    
+    # Даем серверу 5 секунд на обработку удаления webhook
+    time.sleep(5)
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
@@ -201,11 +203,13 @@ def run_bot():
     application.run_polling(
         allowed_updates=Update.ALL_TYPES,
         close_loop=True,
+        drop_pending_updates=True,  # Ключевое изменение!
         stop_signals=[]
     )
 
 if __name__ == "__main__":
-    # Убрали pkill, так как он убивал сам процесс
+    # Убедитесь, что старый процесс полностью завершен
+    time.sleep(5)
     logger.info("🚀 Запуск бота...")
     
     # Запускаем Flask в отдельном потоке
