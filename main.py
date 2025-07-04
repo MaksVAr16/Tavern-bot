@@ -8,24 +8,24 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from dotenv import load_dotenv
 
-# ===== НАСТРОЙКА ЛОГОВ =====
+# ===== КОНФИГУРАЦИЯ =====
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# ===== SELF-PING (ЧТОБЫ БОТ НЕ ЗАСЫПАЛ) =====
+# ===== SELF-PING (АНТИ-ЗАСЫПАНИЕ) =====
 def self_ping():
     while True:
         try:
-            requests.get("https://ваш-бот.onrender.com")  # ЗАМЕНИ НА СВОЙ URL ПОСЛЕ ДЕПЛОЯ!
-            logging.info("✅ Self-ping выполнен")
+            requests.get("https://ваш-проект.onrender.com")  # !!! ЗАМЕНИ НА СВОЙ URL !!!
+            logger.info("✅ Self-ping выполнен")
         except Exception as e:
-            logging.error(f"❌ Ошибка self-ping: {e}")
-        time.sleep(240)  # Пинг каждые 4 минуты
+            logger.error(f"❌ Ошибка self-ping: {e}")
+        time.sleep(240)  # Каждые 4 минуты
 
-# ===== FLASK (ДЛЯ ПРОБУЖДЕНИЯ) =====
+# ===== FLASK (ДЛЯ РЕНДЕРА) =====
 app = Flask(__name__)
 @app.route('/')
 def wake_up():
@@ -36,47 +36,8 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 PARTNER_LINK = "https://1wilib.life/?open=register&p=2z3v"
-REG_CHANNEL = "@+4T5JdFC8bzBkZmIy"  # Твой канал регистраций
-DEPOSIT_CHANNEL = "@+Vkx46VQSlTk3ZmYy"  # Твой канал депозитов
-
-# ===== ТЕКСТЫ И КНОПКИ =====
-TEXTS = {
-    "start": (
-        "🎰 <b>Твой выигрыш уже близко!</b>\n\n"
-        "1️⃣ Зарегистрируйся по кнопке ниже\n"
-        "2️⃣ Пополни счёт от 500₽\n"
-        "3️⃣ Крути рулетку и забирай призы!\n\n"
-        "🔥 <i>Первые 10 игроков сегодня получают удвоенный бонус!</i>"
-    ),
-    "registered": (
-        "🎉 <b>Ты в игре!</b>\n\n"
-        "Теперь пополни счёт от 500₽ — и крути рулетку!\n\n"
-        "⚡ <i>Сейчас казино даёт бонусы в 2 раза чаще!</i>"
-    ),
-    "deposit": (
-        "💰 <b>Твой депозит зачислен!</b>\n\n"
-        "Пришло время крутить рулетку и срывать куш!\n\n"
-        "🚀 <i>Следующий уровень уже разогрет...</i>"
-    ),
-    "prize": (
-        "🎁 <b>Ты выиграл: {prize}!</b>\n\n"
-        "Этот приз видят только 5% игроков — ты везунчик!\n\n"
-        "⏳ <i>Предложение исчезнет через 10 минут...</i>"
-    ),
-    "vip_prize": (
-        "💎 <b>VIP-ДОСТУП АКТИВИРОВАН!</b>\n\n"
-        "Ты вошёл в закрытый клуб победителей!\n\n"
-        "🔒 <i>Места остались только для 3 игроков...</i>"
-    )
-}
-
-IMAGES = {
-    "start": "https://i.ibb.co/.../start.jpg",  # Замени на реальные URL картинок!
-    "registered": "https://i.ibb.co/.../reg.jpg",
-    "deposit": "https://i.ibb.co/.../deposit.jpg",
-    "prize": "https://i.ibb.co/.../prize.jpg",
-    "vip": "https://i.ibb.co/.../vip.jpg"
-}
+REG_CHANNEL = "@+4T5JdFC8bzBkZmIy"
+DEPOSIT_CHANNEL = "@+Vkx46VQSlTk3ZmYy"
 
 # ===== ОБРАБОТЧИКИ КОМАНД =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -84,9 +45,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🚀 Зарегистрироваться", url=PARTNER_LINK)],
         [InlineKeyboardButton("💰 Я пополнил счёт", callback_data="check_deposit")]
     ]
-    await update.message.reply_photo(
-        photo=IMAGES["start"],
-        caption=TEXTS["start"],
+    await update.message.reply_text(
+        "🎰 <b>Твой выигрыш уже близко!</b>\n\n"
+        "1️⃣ Зарегистрируйся по кнопке ниже\n"
+        "2️⃣ Пополни счёт от 500₽\n"
+        "3️⃣ Крути рулетку и забирай призы!\n\n"
+        "🔥 <i>Первые 10 игроков сегодня получают удвоенный бонус!</i>",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
     )
@@ -99,9 +63,10 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 [InlineKeyboardButton("🎰 Крутить рулетку", callback_data="spin")],
                 [InlineKeyboardButton("💸 Пополнить счёт", url=PARTNER_LINK)]
             ]
-            await update.message.reply_photo(
-                photo=IMAGES["registered"],
-                caption=TEXTS["registered"],
+            await update.message.reply_text(
+                "🎉 <b>Ты в игре!</b>\n\n"
+                "Теперь пополни счёт от 500₽ — и крути рулетку!\n\n"
+                "⚡ <i>Сейчас казино даёт бонусы в 2 раза чаще!</i>",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
@@ -113,9 +78,10 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async for msg in context.bot.get_chat_history(DEPOSIT_CHANNEL, limit=100):
         if str(user_id) in msg.text:
             keyboard = [[InlineKeyboardButton("🎡 КРУТИТЬ РУЛЕТКУ", callback_data="spin")]]
-            await update.message.reply_photo(
-                photo=IMAGES["deposit"],
-                caption=TEXTS["deposit"],
+            await update.message.reply_text(
+                "💰 <b>Твой депозит зачислен!</b>\n\n"
+                "Пришло время крутить рулетку и срывать куш!\n\n"
+                "🚀 <i>Следующий уровень уже разогрет...</i>",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
@@ -123,20 +89,21 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("ℹ️ Пополни счёт от 500₽, чтобы играть!")
 
 async def spin_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    prize = "Фриспин 50$"  # Здесь можно добавить логику рулетки
+    prize = "Фриспин 50$"
     keyboard = [
         [InlineKeyboardButton("🎁 ЗАБРАТЬ ПРИЗ", callback_data=f"claim_{prize}")],
         [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
     ]
-    await update.message.reply_photo(
-        photo=IMAGES["prize"],
-        caption=TEXTS["prize"].format(prize=prize),
+    await update.message.reply_text(
+        f"🎁 <b>Ты выиграл: {prize}!</b>\n\n"
+        "Этот приз видят только 5% игроков — ты везунчик!\n\n"
+        "⏳ <i>Предложение исчезнет через 10 минут...</i>",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
     )
 
-# ===== ЗАПУСК БОТА =====
-def main():
+# ===== ЗАПУСК БОТА (БЕЗ КОНФЛИКТОВ) =====
+def run_bot():
     app_bot = Application.builder().token(BOT_TOKEN).build()
     
     # Регистрация обработчиков
@@ -145,12 +112,21 @@ def main():
     app_bot.add_handler(CallbackQueryHandler(check_deposit, pattern="^check_deposit$"))
     app_bot.add_handler(CallbackQueryHandler(spin_handler, pattern="^spin$"))
     
-    app_bot.run_polling()
+    # Критически важные параметры для избежания конфликтов
+    app_bot.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        close_loop=False,
+        stop_signals=[]
+    )
 
 if __name__ == "__main__":
-    # Запускаем self-ping и Flask в фоне
-    threading.Thread(target=self_ping, daemon=True).start()
-    threading.Thread(target=app.run, kwargs={'host':'0.0.0.0','port':8080}, daemon=True).start()
-    
-    # Запускаем бота
-    main()
+    # Гарантируем единственный экземпляр бота
+    if not os.environ.get("BOT_STARTED"):
+        os.environ["BOT_STARTED"] = "1"
+        
+        # Запуск self-ping и Flask в фоне
+        threading.Thread(target=self_ping, daemon=True).start()
+        threading.Thread(target=app.run, kwargs={'host':'0.0.0.0','port':8080}, daemon=True).start()
+        
+        # Запуск бота
+        run_bot()
