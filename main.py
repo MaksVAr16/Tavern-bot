@@ -39,15 +39,16 @@ CHANNEL_LINK = "https://t.me/your_channel"
 REG_CHANNEL = "@+-1002739343436"
 DEPOSIT_CHANNEL = "@+-1002690483167"
 
+# Временные изображения
 IMAGES = {
-    "start": "https://i.imgur.com/placeholder.jpg",
-    "help": "https://i.imgur.com/placeholder.jpg",
-    "level_1": "https://i.imgur.com/placeholder.jpg",
-    "level_2": "https://i.imgur.com/placeholder.jpg",
-    "level_3": "https://i.imgur.com/placeholder.jpg", 
-    "level_4": "https://i.imgur.com/placeholder.jpg",
-    "level_5": "https://i.imgur.com/placeholder.jpg",
-    "vip": "https://i.imgur.com/placeholder.jpg"
+    "start": "https://via.placeholder.com/600x400?text=Start+Image",
+    "help": "https://via.placeholder.com/600x400?text=Help+Image",
+    "level_1": "https://via.placeholder.com/600x400?text=Level+1",
+    "level_2": "https://via.placeholder.com/600x400?text=Level+2",
+    "level_3": "https://via.placeholder.com/600x400?text=Level+3", 
+    "level_4": "https://via.placeholder.com/600x400?text=Level+4",
+    "level_5": "https://via.placeholder.com/600x400?text=Level+5",
+    "vip": "https://via.placeholder.com/600x400?text=VIP"
 }
 
 LEVELS = {
@@ -118,7 +119,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     try:
-        # ИСПРАВЛЕНО: Правильное создание InputMediaPhoto
         media = InputMediaPhoto(
             media=IMAGES["help"],
             caption="🛠 <b>Инструкция:</b>\n\n1. Используйте новый аккаунт\n2. Если бот не видит регистрацию - подождите 5 минут",
@@ -131,7 +131,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as e:
         logger.error(f"Ошибка редактирования: {e}")
-        await query.message.reply_photo(
+        await context.bot.send_photo(
+            chat_id=query.message.chat_id,
             photo=IMAGES["help"],
             caption="🛠 <b>Инструкция:</b>\n\n1. Используйте новый аккаунт...",
             reply_markup=InlineKeyboardMarkup(get_help_keyboard()),
@@ -146,14 +147,21 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     registered = False
     
     try:
-        async for msg in context.bot.get_chat_history(REG_CHANNEL, limit=100):
+        # Исправленный способ получения истории чата
+        messages = []
+        async with context.bot:
+            async for message in context.bot.get_chat_history(chat_id=REG_CHANNEL, limit=100):
+                messages.append(message)
+        
+        for msg in messages:
             if str(user_id) in msg.text:
                 registered = True
                 break
     except Exception as e:
         logger.error(f"Ошибка проверки: {e}")
-        await query.edit_message_text(
-            "⚠️ Ошибка сервера. Попробуйте позже.",
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text="⚠️ Ошибка сервера. Попробуйте позже.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
             ])
@@ -162,7 +170,6 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     if registered:
         try:
-            # ИСПРАВЛЕНО: Правильное создание InputMediaPhoto
             media = InputMediaPhoto(
                 media=IMAGES["level_1"],
                 caption=LEVELS[1]["text"],
@@ -175,15 +182,17 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
         except Exception as e:
             logger.error(f"Ошибка перехода на уровень 1: {e}")
-            await query.message.reply_photo(
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
                 photo=IMAGES["level_1"],
                 caption=LEVELS[1]["text"],
                 reply_markup=InlineKeyboardMarkup(get_level_keyboard(1)),
                 parse_mode="HTML"
             )
     else:
-        await query.edit_message_text(
-            "❌ <b>Регистрация не найдена!</b>\n\nУбедитесь, что вы:\n1. Создали новый аккаунт\n2. Перешли по партнерской ссылке",
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text="❌ <b>Регистрация не найдена!</b>\n\nУбедитесь, что вы:\n1. Создали новый аккаунт\n2. Перешли по партнерской ссылке",
             reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard()),
             parse_mode="HTML"
         )
