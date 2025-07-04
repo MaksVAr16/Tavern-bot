@@ -1,8 +1,0 @@
-services:
-  - name: your-service-name
-    type: web
-    plan: free
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
-    port: 10000
