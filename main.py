@@ -1,3 +1,9 @@
+try:
+    import imghdr
+except ModuleNotFoundError:
+    # Для Python 3.13+
+    import imageio as imghdr
+
 import os
 import logging
 import threading
