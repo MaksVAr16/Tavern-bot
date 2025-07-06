@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def self_ping():
     while True:
         try:
-            requests.get("https://ВАШ_БОТ.onrender.com")  # 🔄 ЗАМЕНИ НА СВОЙ URL!
+            requests.get("https://tavern-bot.onrender.com")  # 🔄 ЗАМЕНИ НА СВОЙ URL!
             logger.info("✅ Self-ping выполнен")
         except Exception as e:
             logger.error(f"❌ Ошибка self-ping: {e}")
@@ -35,21 +35,21 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 PARTNER_LINK = "https://1wilib.life/?open=register&p=2z3v"
-VIP_BOT_LINK = "https://t.me/your_vip_bot"  # 🔄 ЗАМЕНИ НА ССЫЛКУ НА VIP-БОТА
-CHANNEL_LINK = "https://t.me/your_channel"  # 🔄 ЗАМЕНИ НА ССЫЛКУ НА КАНАЛ
-REG_CHANNEL = "@+4T5JdFC8bzBkZmIy"  # 🔄 ПРОВЕРЬ ID КАНАЛА РЕГИСТРАЦИЙ
-DEPOSIT_CHANNEL = "@ваш_канал_депозитов"  # 🔄 ПРОВЕРЬ ID КАНАЛА ДЕПОЗИТОВ
+VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"  # 🔄 ЗАМЕНИ НА ССЫЛКУ НА VIP-БОТА
+CHANNEL_LINK = "https://t.me/jacktaverna"  # 🔄 ЗАМЕНИ НА ССЫЛКУ НА КАНАЛ
+REG_CHANNEL = "@+-1002739343436"  # 🔄 ПРОВЕРЬ ID КАНАЛА РЕГИСТРАЦИЙ
+DEPOSIT_CHANNEL = "@+-1002690483167"  # 🔄 ПРОВЕРЬ ID КАНАЛА ДЕПОЗИТОВ
 
 # 🖼️ ЗАГЛУШКИ ДЛЯ КАРТИНОК (ЗАМЕНИ НА РЕАЛЬНЫЕ URL)
 IMAGES = {
-    "start": "https://i.imgur.com/start.jpg",  # 🖼️ ДЛЯ /start
-    "help": "https://i.imgur.com/help.jpg",  # 🖼️ ДЛЯ РАЗДЕЛА ПОМОЩИ
-    "level_1": "https://i.imgur.com/level1.jpg",  # 🖼️ ДЛЯ УРОВНЯ 1
-    "level_2": "https://i.imgur.com/level2.jpg",  # 🖼️ ДЛЯ УРОВНЯ 2
-    "level_3": "https://i.imgur.com/level3.jpg",  # 🖼️ ДЛЯ УРОВНЯ 3
-    "level_4": "https://i.imgur.com/level4.jpg",  # 🖼️ ДЛЯ УРОВНЯ 4
-    "level_5": "https://i.imgur.com/level5.jpg",  # 🖼️ ДЛЯ УРОВНЯ 5
-    "vip": "https://i.imgur.com/vip.jpg"  # 🖼️ ДЛЯ VIP-СООБЩЕНИЯ
+    "start": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ /start
+    "help": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ РАЗДЕЛА ПОМОЩИ
+    "level_1": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 1
+    "level_2": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 2
+    "level_3": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 3
+    "level_4": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 4
+    "level_5": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 5
+    "vip": "https://imgur.com/a/X8aN0Lk"  # 🖼️ ДЛЯ VIP-СООБЩЕНИЯ
 }
 
 # ================== ТЕКСТЫ СООБЩЕНИЙ ================== #
