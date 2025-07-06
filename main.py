@@ -40,7 +40,18 @@ VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"
 CHANNEL_LINK = "https://t.me/jacktaverna"
 REG_CHANNEL = -1002739343436
 DEPOSIT_CHANNEL = -1002690483167
-IMAGE_URL = "https://i.imgur.com/X8aN0Lk.jpg"  # Изображение-заглушка
+
+# Разные изображения для каждого этапа (временные заглушки)
+IMAGE_URLS = {
+    "start": "https://i.imgur.com/X8aN0Lk.jpg",
+    "help": "https://i.imgur.com/abc123.jpg",
+    "level_1": "https://i.imgur.com/def456.jpg",
+    "level_2": "https://i.imgur.com/ghi789.jpg",
+    "level_3": "https://i.imgur.com/jkl012.jpg",
+    "level_4": "https://i.imgur.com/mno345.jpg",
+    "level_5": "https://i.imgur.com/pqr678.jpg",
+    "vip": "https://i.imgur.com/stu901.jpg"
+}
 
 TEXTS = {
     "start": "🎰 Добро пожаловать в VIP Казино!\n\n🔥 Первые 50 игроков получают +1 бесплатное вращение!\n\n🔹 Для доступа к рулетке:\n1. Зарегистрируйтесь по кнопке ниже\n2. Подтвердите регистрацию\n3. Получите 3 бесплатных вращения",
@@ -95,17 +106,17 @@ def get_vip_keyboard():
     ]
 
 LEVELS = {
-    1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!"},
-    2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)"},
-    3: {"attempts": 10, "deposit": 2000, "text": "🚀 Уровень 3: 10 вращений (депозит от 2000₽)"},
-    4: {"attempts": 15, "deposit": 5000, "text": "🤑 Уровень 4: 15 вращений (депозит от 5000₽)"},
-    5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)"}
+    1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!", "image": "level_1"},
+    2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)", "image": "level_2"},
+    3: {"attempts": 10, "deposit": 2000, "text": "🚀 Уровень 3: 10 вращений (депозит от 2000₽)", "image": "level_3"},
+    4: {"attempts": 15, "deposit": 5000, "text": "🤑 Уровень 4: 15 вращений (депозит от 5000₽)", "image": "level_4"},
+    5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)", "image": "level_5"}
 }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_photo(
         chat_id=update.message.chat_id,
-        photo=IMAGE_URL,
+        photo=IMAGE_URLS["start"],
         caption=TEXTS["start"],
         reply_markup=InlineKeyboardMarkup(get_start_keyboard())
     )
@@ -115,7 +126,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     await context.bot.send_photo(
         chat_id=query.message.chat_id,
-        photo=IMAGE_URL,
+        photo=IMAGE_URLS["help"],
         caption=TEXTS["help"],
         reply_markup=InlineKeyboardMarkup(get_help_keyboard())
     )
@@ -126,14 +137,18 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = query.from_user.id
     
     try:
-        # Временное решение: всегда считаем регистрацию подтвержденной
-        # В рабочей версии здесь будет проверка канала
-        found = True
+        found = False
+        # Получаем историю сообщений канала
+        async with context.bot:
+            async for message in context.bot.get_chat_history(chat_id=REG_CHANNEL, limit=100):
+                if message.text and str(user_id) in message.text:
+                    found = True
+                    break
         
         if found:
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
-                photo=IMAGE_URL,
+                photo=IMAGE_URLS[LEVELS[1]["image"]],
                 caption=LEVELS[1]["text"],
                 reply_markup=InlineKeyboardMarkup(get_level_keyboard(1))
             )
@@ -145,7 +160,7 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
             
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
+        logger.error(f"Ошибка проверки регистрации: {e}")
         await context.bot.send_message(
             chat_id=query.message.chat_id,
             text="⚠️ Ошибка сервера. Попробуйте позже.",
@@ -162,9 +177,13 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     deposit = LEVELS[level]["deposit"]
     
     try:
-        # Временное решение: всегда считаем депозит подтвержденным
-        # В рабочей версии здесь будет проверка канала
-        found = True
+        found = False
+        # Получаем историю сообщений канала
+        async with context.bot:
+            async for message in context.bot.get_chat_history(chat_id=DEPOSIT_CHANNEL, limit=100):
+                if message.text and str(user_id) in message.text and f"{deposit}₽" in message.text:
+                    found = True
+                    break
         
         if found:
             next_level = level + 1 if level < 5 else "vip"
@@ -172,13 +191,13 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if next_level == "vip":
                 await context.bot.send_photo(
                     chat_id=query.message.chat_id,
-                    photo=IMAGE_URL,
+                    photo=IMAGE_URLS["vip"],
                     caption=TEXTS["vip"],
                     reply_markup=InlineKeyboardMarkup(get_vip_keyboard()))
             else:
                 await context.bot.send_photo(
                     chat_id=query.message.chat_id,
-                    photo=IMAGE_URL,
+                    photo=IMAGE_URLS[LEVELS[next_level]["image"]],
                     caption=LEVELS[next_level]["text"],
                     reply_markup=InlineKeyboardMarkup(get_level_keyboard(next_level)))
         else:
@@ -189,7 +208,7 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=InlineKeyboardMarkup(get_deposit_failed_keyboard(level)))
             
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
+        logger.error(f"Ошибка проверки депозита: {e}")
         await context.bot.send_message(
             chat_id=query.message.chat_id,
             text="⚠️ Ошибка сервера. Попробуйте позже.",
@@ -205,7 +224,7 @@ async def back_to_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await context.bot.send_photo(
         chat_id=query.message.chat_id,
-        photo=IMAGE_URL,
+        photo=IMAGE_URLS[LEVELS[level]["image"]],
         caption=LEVELS[level]["text"],
         reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
     )
@@ -215,7 +234,7 @@ async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     await context.bot.send_photo(
         chat_id=query.message.chat_id,
-        photo=IMAGE_URL,
+        photo=IMAGE_URLS["start"],
         caption=TEXTS["start"],
         reply_markup=InlineKeyboardMarkup(get_start_keyboard())
     )
