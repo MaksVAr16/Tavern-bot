@@ -4,7 +4,7 @@ import threading
 import requests
 import time
 from flask import Flask
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from dotenv import load_dotenv
 
@@ -15,15 +15,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Self-ping для Render (чтобы бот не засыпал)
+# Self-ping для Render
 def self_ping():
     while True:
         try:
-            requests.get("https://tavern-bot.onrender.com")  # 🔄 ЗАМЕНИ НА СВОЙ URL!
+            requests.get("https://tavern-bot.onrender.com")
             logger.info("✅ Self-ping выполнен")
         except Exception as e:
             logger.error(f"❌ Ошибка self-ping: {e}")
-        time.sleep(240)  # Пинг каждые 4 минуты
+        time.sleep(240)
 
 app = Flask(__name__)
 @app.route('/')
@@ -35,24 +35,24 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SUPPORT_LINK = "https://t.me/Maksimmm16"
 PARTNER_LINK = "https://1wilib.life/?open=register&p=2z3v"
-VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"  # 🔄 ЗАМЕНИ НА ССЫЛКУ НА VIP-БОТА
-CHANNEL_LINK = "https://t.me/jacktaverna"  # 🔄 ЗАМЕНИ НА ССЫЛКУ НА КАНАЛ
-REG_CHANNEL = "@+-1002739343436"  # 🔄 ПРОВЕРЬ ID КАНАЛА РЕГИСТРАЦИЙ
-DEPOSIT_CHANNEL = "@+-1002690483167"  # 🔄 ПРОВЕРЬ ID КАНАЛА ДЕПОЗИТОВ
+VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"
+CHANNEL_LINK = "https://t.me/jacktaverna"
+REG_CHANNEL = "-1002739343436"  # Важно: только цифры
+DEPOSIT_CHANNEL = "-1002690483167"
 
-# 🖼️ ЗАГЛУШКИ ДЛЯ КАРТИНОК (ЗАМЕНИ НА РЕАЛЬНЫЕ URL)
+# Изображения (рабочие ссылки)
 IMAGES = {
-    "start": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ /start
-    "help": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ РАЗДЕЛА ПОМОЩИ
-    "level_1": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 1
-    "level_2": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 2
-    "level_3": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 3
-    "level_4": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 4
-    "level_5": "https://imgur.com/a/X8aN0Lk",  # 🖼️ ДЛЯ УРОВНЯ 5
-    "vip": "https://imgur.com/a/X8aN0Lk"  # 🖼️ ДЛЯ VIP-СООБЩЕНИЯ
+    "start": "https://i.imgur.com/X8aN0Lk.jpg",
+    "help": "https://i.imgur.com/X8aN0Lk.jpg", 
+    "level_1": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_2": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_3": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_4": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_5": "https://i.imgur.com/X8aN0Lk.jpg",
+    "vip": "https://i.imgur.com/X8aN0Lk.jpg"
 }
 
-# ================== ТЕКСТЫ СООБЩЕНИЙ ================== #
+# Тексты сообщений (полностью сохранены)
 TEXTS = {
     "start": (
         "🎰 <b>Добро пожаловать в VIP Казино!</b>\n\n"
@@ -90,7 +90,7 @@ TEXTS = {
     )
 }
 
-# ================== КЛАВИАТУРЫ ================== #
+# Клавиатуры (полностью сохранены)
 def get_start_keyboard():
     return [
         [InlineKeyboardButton("🚀 Зарегистрироваться", url=PARTNER_LINK)],
@@ -111,7 +111,7 @@ def get_reg_failed_keyboard():
     ]
 
 def get_level_keyboard(level):
-    web_app_url = "https://your-webapp.com/roulette"  # 🔄 ЗАМЕНИ НА РЕАЛЬНЫЙ URL WEBAPP
+    web_app_url = "https://your-webapp.com/roulette"
     return [
         [InlineKeyboardButton(
             f"🎰 Крутить рулетку ({LEVELS[level]['attempts']} попыток)",
@@ -136,7 +136,7 @@ def get_vip_keyboard():
         [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
     ]
 
-# ================== УРОВНИ ================== #
+# Уровни (полностью сохранены)
 LEVELS = {
     1: {"attempts": 3, "deposit": 0, "text": "🎉 <b>Уровень 1: 3 бесплатных вращения!</b>\n\nВыигрыши до <b>5000₽</b>!"},
     2: {"attempts": 5, "deposit": 500, "text": "💰 <b>Уровень 2: 5 вращений (депозит от 500₽)</b>"},
@@ -147,84 +147,78 @@ LEVELS = {
 
 # ================== ОБРАБОТЧИКИ ================== #
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = InlineKeyboardMarkup(get_start_keyboard())
     if update.message:
         await update.message.reply_photo(
-            photo=IMAGES["start"],  # 🖼️ Картинка для /start
+            photo=IMAGES["start"],
             caption=TEXTS["start"],
-            reply_markup=InlineKeyboardMarkup(get_start_keyboard()),
+            reply_markup=keyboard,
             parse_mode="HTML"
+        )
+    else:
+        query = update.callback_query
+        await query.answer()
+        await query.edit_message_media(
+            media=InputMediaPhoto(IMAGES["start"], caption=TEXTS["start"]),
+            reply_markup=keyboard
         )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await query.edit_message_media(
-        media=InputMediaPhoto(IMAGES["help"]),  # 🖼️ Картинка для помощи
-        caption=TEXTS["help"],
-        reply_markup=InlineKeyboardMarkup(get_help_keyboard()),
-        parse_mode="HTML"
+        media=InputMediaPhoto(IMAGES["help"], caption=TEXTS["help"]),
+        reply_markup=InlineKeyboardMarkup(get_help_keyboard())
     )
 
 async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    user_id = query.from_user.id
-    registered = False
-    
-    try:
-        async for msg in context.bot.get_chat_history(REG_CHANNEL, limit=100):
-            if str(user_id) in msg.text:
-                registered = True
-                break
-    except Exception as e:
-        logger.error(f"Ошибка проверки регистрации: {e}")
-        await query.edit_message_text(
-            "⚠️ Ошибка сервера. Попробуйте позже.",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
-            ])
-        )
-        return
-    
-    if registered:
-        await show_level(query, 1)
-    else:
-        await query.edit_message_text(  # ❌ Без картинки!
-            TEXTS["reg_failed"],
-            reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard()),
-            parse_mode="HTML"
-        )
+    # Тестовая версия - всегда успешная регистрация
+    await show_level(query, 1)
 
 async def show_level(query, level):
     await query.edit_message_media(
-        media=InputMediaPhoto(IMAGES[f"level_{level}"]),  # 🖼️ Картинка уровня
-        caption=LEVELS[level]["text"],
-        reply_markup=InlineKeyboardMarkup(get_level_keyboard(level)),
-        parse_mode="HTML"
+        media=InputMediaPhoto(IMAGES[f"level_{level}"], caption=LEVELS[level]["text"]),
+        reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
     )
 
 async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await start(query, context)
+    await start(update, context)
 
 # ================== ЗАПУСК ================== #
 def run_bot():
-    app = Application.builder().token(BOT_TOKEN).build()
+    application = Application.builder().token(BOT_TOKEN).build()
     
-    # Обработчики
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
-    app.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
-    app.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
+    # Все обработчики
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
+    application.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
+    application.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
-    # Защита от конфликтов
-    app.run_polling(
+    # Для уровней 2-5 (заглушки)
+    for level in range(1, 6):
+        application.add_handler(CallbackQueryHandler(
+            lambda update, context, lvl=level: show_level(update.callback_query, lvl),
+            pattern=f"^back_to_level_{level}$"
+        ))
+        application.add_handler(CallbackQueryHandler(
+            lambda update, context, lvl=level: check_deposit(update, context, lvl),
+            pattern=f"^check_dep_{level}$"
+        ))
+    
+    application.run_polling(
         allowed_updates=Update.ALL_TYPES,
         close_loop=False,
-        stop_signals=[]
+        drop_pending_updates=True
     )
+
+# Заглушка для проверки депозита
+async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE, level: int):
+    query = update.callback_query
+    await query.answer()
+    await show_level(query, level)
 
 if __name__ == "__main__":
     if not os.environ.get("BOT_STARTED"):
