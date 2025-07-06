@@ -41,6 +41,18 @@ CHANNEL_LINK = "https://t.me/jacktaverna"
 REG_CHANNEL = -1002739343436
 DEPOSIT_CHANNEL = -1002690483167
 
+# Временное изображение-заглушка для всех случаев
+IMAGE_URLS = {
+    "start": "https://i.imgur.com/X8aN0Lk.jpg",
+    "help": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_1": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_2": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_3": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_4": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_5": "https://i.imgur.com/X8aN0Lk.jpg",
+    "vip": "https://i.imgur.com/X8aN0Lk.jpg"
+}
+
 TEXTS = {
     "start": "🎰 Добро пожаловать в VIP Казино!\n\n🔥 Первые 50 игроков получают +1 бесплатное вращение!\n\n🔹 Для доступа к рулетке:\n1. Зарегистрируйтесь по кнопке ниже\n2. Подтвердите регистрацию\n3. Получите 3 бесплатных вращения",
     "help": "🛠 Инструкция:\n\n1. Используйте новый аккаунт (старые не подойдут)\n2. Если бот не видит регистрацию — подождите 5 минут\n3. Для депозитов используйте только партнерскую ссылку",
@@ -50,6 +62,37 @@ TEXTS = {
     "reg_success": "✅ Регистрация подтверждена! Добро пожаловать в VIP Казино!\n\n🎉 Вам доступно 3 бесплатных вращения на Уровне 1!",
     "deposit_success": "✅ Депозит подтвержден! Переходим на Уровень {level}!\n\n🔥 Вам доступно {attempts} вращений!"
 }
+
+async def send_message_with_image(update, context, text, keyboard_func=None, image_key=None):
+    """Универсальная функция для отправки сообщений с изображением"""
+    chat_id = update.message.chat_id if hasattr(update, 'message') else update.callback_query.message.chat_id
+    
+    if image_key and image_key in IMAGE_URLS:
+        await context.bot.send_photo(
+            chat_id=chat_id,
+            photo=IMAGE_URLS[image_key],
+            caption=text,
+            reply_markup=InlineKeyboardMarkup(keyboard_func()) if keyboard_func else None
+        )
+    else:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard_func()) if keyboard_func else None
+        )
+
+async def edit_message_with_image(query, context, text, keyboard_func=None, image_key=None):
+    """Редактирование сообщения с возможностью добавления изображения"""
+    if image_key and image_key in IMAGE_URLS:
+        await query.edit_message_media(
+            media=InputMediaPhoto(media=IMAGE_URLS[image_key], caption=text),
+            reply_markup=InlineKeyboardMarkup(keyboard_func()) if keyboard_func else None
+        )
+    else:
+        await query.edit_message_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard_func()) if keyboard_func else None
+        )
 
 def get_start_keyboard():
     return [
@@ -94,25 +137,29 @@ def get_vip_keyboard():
     ]
 
 LEVELS = {
-    1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!"},
-    2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)"},
-    3: {"attempts": 10, "deposit": 2000, "text": "🚀 Уровень 3: 10 вращений (депозит от 2000₽)"},
-    4: {"attempts": 15, "deposit": 5000, "text": "🤑 Уровень 4: 15 вращений (депозит от 5000₽)"},
-    5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)"}
+    1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!", "image": "level_1"},
+    2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)", "image": "level_2"},
+    3: {"attempts": 10, "deposit": 2000, "text": "🚀 Уровень 3: 10 вращений (депозит от 2000₽)", "image": "level_3"},
+    4: {"attempts": 15, "deposit": 5000, "text": "🤑 Уровень 4: 15 вращений (депозит от 5000₽)", "image": "level_4"},
+    5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)", "image": "level_5"}
 }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        TEXTS["start"],
-        reply_markup=InlineKeyboardMarkup(get_start_keyboard())
+    await send_message_with_image(
+        update, context,
+        text=TEXTS["start"],
+        keyboard_func=get_start_keyboard,
+        image_key="start"
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
+    await edit_message_with_image(
+        query, context,
         text=TEXTS["help"],
-        reply_markup=InlineKeyboardMarkup(get_help_keyboard())
+        keyboard_func=get_help_keyboard,
+        image_key="help"
     )
 
 async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -128,10 +175,12 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 break
         
         if found:
-            await context.bot.send_message(
+            level = 1
+            await context.bot.send_photo(
                 chat_id=query.message.chat_id,
-                text=LEVELS[1]["text"],
-                reply_markup=InlineKeyboardMarkup(get_level_keyboard(1))
+                photo=IMAGE_URLS[LEVELS[level]["image"]],
+                caption=LEVELS[level]["text"],
+                reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
             )
         else:
             await context.bot.send_message(
@@ -168,14 +217,16 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
             next_level = level + 1 if level < 5 else "vip"
             
             if next_level == "vip":
-                await context.bot.send_message(
+                await context.bot.send_photo(
                     chat_id=query.message.chat_id,
-                    text=TEXTS["vip"],
+                    photo=IMAGE_URLS["vip"],
+                    caption=TEXTS["vip"],
                     reply_markup=InlineKeyboardMarkup(get_vip_keyboard()))
             else:
-                await context.bot.send_message(
+                await context.bot.send_photo(
                     chat_id=query.message.chat_id,
-                    text=LEVELS[next_level]["text"],
+                    photo=IMAGE_URLS[LEVELS[next_level]["image"]],
+                    caption=LEVELS[next_level]["text"],
                     reply_markup=InlineKeyboardMarkup(get_level_keyboard(next_level)))
         else:
             text = TEXTS["deposit_failed"].format(level=level, deposit=deposit)
@@ -199,18 +250,20 @@ async def back_to_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     level = int(query.data.split('_')[-1])
     
-    await context.bot.send_message(
+    await context.bot.send_photo(
         chat_id=query.message.chat_id,
-        text=LEVELS[level]["text"],
+        photo=IMAGE_URLS[LEVELS[level]["image"]],
+        caption=LEVELS[level]["text"],
         reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
     )
 
 async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await context.bot.send_message(
+    await context.bot.send_photo(
         chat_id=query.message.chat_id,
-        text=TEXTS["start"],
+        photo=IMAGE_URLS["start"],
+        caption=TEXTS["start"],
         reply_markup=InlineKeyboardMarkup(get_start_keyboard())
     )
 
