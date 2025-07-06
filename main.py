@@ -32,40 +32,25 @@ def wake_up():
 
 # ================== КОНФИГУРАЦИЯ ================== #
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # Токен берётся из файла .env
-SUPPORT_LINK = "https://t.me/Maksimmm16"  # Ссылка на поддержку
-PARTNER_LINK = "https://1wilib.life/?open=register&p=2z3v"  # Партнёрская ссылка
-VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"  # Ссылка на VIP-бота
-CHANNEL_LINK = "https://t.me/jacktaverna"  # Ссылка на канал
-REG_CHANNEL = -1002739343436  # ID канала регистраций (только цифры!)
-DEPOSIT_CHANNEL = -1002690483167  # ID канала депозитов (только цифры!)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+SUPPORT_LINK = "https://t.me/Maksimmm16"
+PARTNER_LINK = "https://1wilib.life/?open=register&p=2z3v"
+VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"
+CHANNEL_LINK = "https://t.me/jacktaverna"
+REG_CHANNEL = -1002739343436
+DEPOSIT_CHANNEL = -1002690483167
 
-# ================== ИЗОБРАЖЕНИЯ ================== #
-"""
-КАК ЗАМЕНИТЬ ИЗОБРАЖЕНИЯ:
-1. Загрузите картинку на imgur.com
-2. Возьмите прямую ссылку (оканчивается на .jpg/.png)
-3. Вставьте вместо текущих ссылок
-"""
 IMAGES = {
-    "start": "https://i.imgur.com/X8aN0Lk.jpg",  # Для команды /start
-    "help": "https://i.imgur.com/X8aN0Lk.jpg",  # Для раздела помощи
-    "level_1": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 1
-    "level_2": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 2
-    "level_3": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 3
-    "level_4": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 4
-    "level_5": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 5
-    "vip": "https://i.imgur.com/X8aN0Lk.jpg"  # Для VIP-сообщения
+    "start": "https://i.imgur.com/X8aN0Lk.jpg",
+    "help": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_1": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_2": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_3": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_4": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_5": "https://i.imgur.com/X8aN0Lk.jpg",
+    "vip": "https://i.imgur.com/X8aN0Lk.jpg"
 }
 
-# ================== ТЕКСТЫ СООБЩЕНИЙ ================== """
-"""
-КАК РЕДАКТИРОВАТЬ ТЕКСТ:
-1. Меняйте текст внутри кавычек
-2. Для переноса строки используйте \n
-3. Для жирного текста - <b>текст</b>
-4. Для курсива - <i>текст</i>
-"""
 TEXTS = {
     "start": (
         "🎰 Добро пожаловать в VIP Казино!\n\n"
@@ -103,11 +88,84 @@ TEXTS = {
     )
 }
 
-# ================== УРОВНИ И КНОПКИ ================== #
-# (остальной код остаётся без изменений)
-# ... [здесь идут все ваши функции get_*_keyboard и LEVELS]
+def get_start_keyboard():
+    return [
+        [InlineKeyboardButton("🚀 Зарегистрироваться", url=PARTNER_LINK)],
+        [InlineKeyboardButton("✅ Я зарегистрировался", callback_data="check_reg")],
+        [InlineKeyboardButton("❓ Нужна помощь", callback_data="help")]
+    ]
 
-# ================== ОСНОВНЫЕ ОБРАБОТЧИКИ ================== #
+def get_help_keyboard():
+    return [
+        [InlineKeyboardButton("📞 Менеджер", url=SUPPORT_LINK)],
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
+    ]
+
+def get_reg_failed_keyboard():
+    return [
+        [InlineKeyboardButton("🔄 Попробовать снова", url=PARTNER_LINK)],
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
+    ]
+
+def get_level_keyboard(level):
+    web_app_url = "https://your-webapp.com/roulette"
+    return [
+        [InlineKeyboardButton(
+            f"🎰 Крутить рулетку ({LEVELS[level]['attempts']} попыток)",
+            web_app=WebAppInfo(url=f"{web_app_url}?level={level}")
+        )],
+        [InlineKeyboardButton("💎 VIP-доступ", url=PARTNER_LINK)],
+        [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
+    ]
+
+def get_deposit_failed_keyboard(level):
+    return [
+        [InlineKeyboardButton("💳 Пополнить баланс", url=PARTNER_LINK)],
+        [InlineKeyboardButton("🔄 Проверить снова", callback_data=f"check_dep_{level}")],
+        [InlineKeyboardButton("🔙 Назад", callback_data=f"back_to_level_{level-1}" if level > 1 else "back_to_start")]
+    ]
+
+def get_vip_keyboard():
+    return [
+        [InlineKeyboardButton("💎 Получить VIP", url=PARTNER_LINK)],
+        [InlineKeyboardButton("🎁 Забрать приз", url=VIP_BOT_LINK)],
+        [InlineKeyboardButton("📢 Наш канал", url=CHANNEL_LINK)],
+        [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
+    ]
+
+LEVELS = {
+    1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!"},
+    2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)"},
+    3: {"attempts": 10, "deposit": 2000, "text": "🚀 Уровень 3: 10 вращений (депозит от 2000₽)"},
+    4: {"attempts": 15, "deposit": 5000, "text": "🤑 Уровень 4: 15 вращений (депозит от 5000₽)"},
+    5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)"}
+}
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = InlineKeyboardMarkup(get_start_keyboard())
+    if update.message:
+        await update.message.reply_photo(
+            photo=IMAGES["start"],
+            caption=TEXTS["start"],
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+    else:
+        query = update.callback_query
+        await query.answer()
+        await query.edit_message_media(
+            media=InputMediaPhoto(IMAGES["start"], caption=TEXTS["start"]),
+            reply_markup=keyboard
+        )
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_media(
+        media=InputMediaPhoto(IMAGES["help"], caption=TEXTS["help"]),
+        reply_markup=InlineKeyboardMarkup(get_help_keyboard())
+    )
+
 async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -138,6 +196,15 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
             reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard()),
             parse_mode="HTML"
         )
+
+async def show_level(query, level):
+    await query.edit_message_media(
+        media=InputMediaPhoto(IMAGES[f"level_{level}"], caption=LEVELS[level]["text"]),
+        reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
+    )
+
+async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await start(update, context)
 
 async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE, level: int):
     query = update.callback_query
@@ -171,17 +238,14 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE, leve
             parse_mode="HTML"
         )
 
-# ================== ЗАПУСК ================== #
 def run_bot():
     application = Application.builder().token(BOT_TOKEN).build()
     
-    # Все обработчики
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
     application.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
     application.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
-    # Для уровней 2-5
     for level in range(1, 6):
         application.add_handler(CallbackQueryHandler(
             lambda update, context, lvl=level: show_level(update.callback_query, lvl),
