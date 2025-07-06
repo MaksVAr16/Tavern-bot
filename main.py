@@ -3,10 +3,9 @@ import logging
 import threading
 import requests
 import time
-import asyncio
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, Updater
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
 from dotenv import load_dotenv
 
 # ================== НАСТРОЙКИ ================== #
@@ -113,52 +112,48 @@ LEVELS = {
     5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)", "image": "level_5"}
 }
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_photo(
+def start(update: Update, context: CallbackContext):
+    context.bot.send_photo(
         chat_id=update.message.chat_id,
         photo=IMAGE_URLS["start"],
         caption=TEXTS["start"],
         reply_markup=InlineKeyboardMarkup(get_start_keyboard())
     )
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def help_command(update: Update, context: CallbackContext):
     query = update.callback_query
-    await query.answer()
-    await context.bot.send_photo(
+    query.answer()
+    context.bot.send_photo(
         chat_id=query.message.chat_id,
         photo=IMAGE_URLS["help"],
         caption=TEXTS["help"],
         reply_markup=InlineKeyboardMarkup(get_help_keyboard())
     )
 
-async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def check_registration(update: Update, context: CallbackContext):
     query = update.callback_query
-    await query.answer()
+    query.answer()
     user_id = query.from_user.id
     
     try:
-        found = False
         # Для теста всегда подтверждаем регистрацию
-        # В рабочей версии замените на проверку канала
         found = True
         
         if found:
-            await context.bot.send_photo(
+            context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 photo=IMAGE_URLS[LEVELS[1]["image"]],
                 caption=LEVELS[1]["text"],
                 reply_markup=InlineKeyboardMarkup(get_level_keyboard(1))
-            )
         else:
-            await context.bot.send_message(
+            context.bot.send_message(
                 chat_id=query.message.chat_id,
                 text=TEXTS["reg_failed"],
-                reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard())
-            )
+                reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard()))
             
     except Exception as e:
         logger.error(f"Ошибка: {e}")
-        await context.bot.send_message(
+        context.bot.send_message(
             chat_id=query.message.chat_id,
             text="⚠️ Ошибка сервера. Попробуйте позже.",
             reply_markup=InlineKeyboardMarkup([
@@ -166,43 +161,42 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
             ])
         )
 
-async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def check_deposit(update: Update, context: CallbackContext):
     query = update.callback_query
-    await query.answer()
+    query.answer()
     level = int(query.data.split('_')[-1])
     user_id = query.from_user.id
     deposit = LEVELS[level]["deposit"]
     
     try:
         # Для теста всегда подтверждаем депозит
-        # В рабочей версии замените на проверку канала
         found = True
         
         if found:
             next_level = level + 1 if level < 5 else "vip"
             
             if next_level == "vip":
-                await context.bot.send_photo(
+                context.bot.send_photo(
                     chat_id=query.message.chat_id,
                     photo=IMAGE_URLS["vip"],
                     caption=TEXTS["vip"],
                     reply_markup=InlineKeyboardMarkup(get_vip_keyboard()))
             else:
-                await context.bot.send_photo(
+                context.bot.send_photo(
                     chat_id=query.message.chat_id,
                     photo=IMAGE_URLS[LEVELS[next_level]["image"]],
                     caption=LEVELS[next_level]["text"],
                     reply_markup=InlineKeyboardMarkup(get_level_keyboard(next_level)))
         else:
             text = TEXTS["deposit_failed"].format(level=level, deposit=deposit)
-            await context.bot.send_message(
+            context.bot.send_message(
                 chat_id=query.message.chat_id,
                 text=text,
                 reply_markup=InlineKeyboardMarkup(get_deposit_failed_keyboard(level)))
             
     except Exception as e:
         logger.error(f"Ошибка: {e}")
-        await context.bot.send_message(
+        context.bot.send_message(
             chat_id=query.message.chat_id,
             text="⚠️ Ошибка сервера. Попробуйте позже.",
             reply_markup=InlineKeyboardMarkup([
@@ -210,22 +204,22 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-async def back_to_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def back_to_level(update: Update, context: CallbackContext):
     query = update.callback_query
-    await query.answer()
+    query.answer()
     level = int(query.data.split('_')[-1])
     
-    await context.bot.send_photo(
+    context.bot.send_photo(
         chat_id=query.message.chat_id,
         photo=IMAGE_URLS[LEVELS[level]["image"]],
         caption=LEVELS[level]["text"],
         reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
     )
 
-async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def back_to_start(update: Update, context: CallbackContext):
     query = update.callback_query
-    await query.answer()
-    await context.bot.send_photo(
+    query.answer()
+    context.bot.send_photo(
         chat_id=query.message.chat_id,
         photo=IMAGE_URLS["start"],
         caption=TEXTS["start"],
@@ -233,26 +227,27 @@ async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 def run_bot():
-    # Исправление для работы с последними версиями библиотеки
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
-    application.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
-    application.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
+    updater = Updater(BOT_TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
+    dp.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
+    dp.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
     for level in range(1, 6):
-        application.add_handler(CallbackQueryHandler(
-            lambda update, ctx, lvl=level: check_deposit(update, ctx, lvl),
+        dp.add_handler(CallbackQueryHandler(
+            lambda update, context, lvl=level: check_deposit(update, context, lvl),
             pattern=f"^check_dep_{level}$"
         ))
         
-        application.add_handler(CallbackQueryHandler(
-            lambda update, ctx, lvl=level: back_to_level(update, ctx, lvl),
+        dp.add_handler(CallbackQueryHandler(
+            lambda update, context, lvl=level: back_to_level(update, context, lvl),
             pattern=f"^back_to_level_{level}$"
         ))
     
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     threading.Thread(target=self_ping, daemon=True).start()
