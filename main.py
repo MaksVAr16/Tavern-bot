@@ -40,18 +40,7 @@ VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"
 CHANNEL_LINK = "https://t.me/jacktaverna"
 REG_CHANNEL = -1002739343436
 DEPOSIT_CHANNEL = -1002690483167
-
-# Временное изображение-заглушка для всех случаев
-IMAGE_URLS = {
-    "start": "https://i.imgur.com/X8aN0Lk.jpg",
-    "help": "https://i.imgur.com/X8aN0Lk.jpg",
-    "level_1": "https://i.imgur.com/X8aN0Lk.jpg",
-    "level_2": "https://i.imgur.com/X8aN0Lk.jpg",
-    "level_3": "https://i.imgur.com/X8aN0Lk.jpg",
-    "level_4": "https://i.imgur.com/X8aN0Lk.jpg",
-    "level_5": "https://i.imgur.com/X8aN0Lk.jpg",
-    "vip": "https://i.imgur.com/X8aN0Lk.jpg"
-}
+IMAGE_URL = "https://i.imgur.com/X8aN0Lk.jpg"  # Изображение-заглушка
 
 TEXTS = {
     "start": "🎰 Добро пожаловать в VIP Казино!\n\n🔥 Первые 50 игроков получают +1 бесплатное вращение!\n\n🔹 Для доступа к рулетке:\n1. Зарегистрируйтесь по кнопке ниже\n2. Подтвердите регистрацию\n3. Получите 3 бесплатных вращения",
@@ -62,37 +51,6 @@ TEXTS = {
     "reg_success": "✅ Регистрация подтверждена! Добро пожаловать в VIP Казино!\n\n🎉 Вам доступно 3 бесплатных вращения на Уровне 1!",
     "deposit_success": "✅ Депозит подтвержден! Переходим на Уровень {level}!\n\n🔥 Вам доступно {attempts} вращений!"
 }
-
-async def send_message_with_image(update, context, text, keyboard_func=None, image_key=None):
-    """Универсальная функция для отправки сообщений с изображением"""
-    chat_id = update.message.chat_id if hasattr(update, 'message') else update.callback_query.message.chat_id
-    
-    if image_key and image_key in IMAGE_URLS:
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=IMAGE_URLS[image_key],
-            caption=text,
-            reply_markup=InlineKeyboardMarkup(keyboard_func()) if keyboard_func else None
-        )
-    else:
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=text,
-            reply_markup=InlineKeyboardMarkup(keyboard_func()) if keyboard_func else None
-        )
-
-async def edit_message_with_image(query, context, text, keyboard_func=None, image_key=None):
-    """Редактирование сообщения с возможностью добавления изображения"""
-    if image_key and image_key in IMAGE_URLS:
-        await query.edit_message_media(
-            media=InputMediaPhoto(media=IMAGE_URLS[image_key], caption=text),
-            reply_markup=InlineKeyboardMarkup(keyboard_func()) if keyboard_func else None
-        )
-    else:
-        await query.edit_message_text(
-            text=text,
-            reply_markup=InlineKeyboardMarkup(keyboard_func()) if keyboard_func else None
-        )
 
 def get_start_keyboard():
     return [
@@ -137,29 +95,29 @@ def get_vip_keyboard():
     ]
 
 LEVELS = {
-    1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!", "image": "level_1"},
-    2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)", "image": "level_2"},
-    3: {"attempts": 10, "deposit": 2000, "text": "🚀 Уровень 3: 10 вращений (депозит от 2000₽)", "image": "level_3"},
-    4: {"attempts": 15, "deposit": 5000, "text": "🤑 Уровень 4: 15 вращений (депозит от 5000₽)", "image": "level_4"},
-    5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)", "image": "level_5"}
+    1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!"},
+    2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)"},
+    3: {"attempts": 10, "deposit": 2000, "text": "🚀 Уровень 3: 10 вращений (депозит от 2000₽)"},
+    4: {"attempts": 15, "deposit": 5000, "text": "🤑 Уровень 4: 15 вращений (депозит от 5000₽)"},
+    5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)"}
 }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await send_message_with_image(
-        update, context,
-        text=TEXTS["start"],
-        keyboard_func=get_start_keyboard,
-        image_key="start"
+    await context.bot.send_photo(
+        chat_id=update.message.chat_id,
+        photo=IMAGE_URL,
+        caption=TEXTS["start"],
+        reply_markup=InlineKeyboardMarkup(get_start_keyboard())
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await edit_message_with_image(
-        query, context,
-        text=TEXTS["help"],
-        keyboard_func=get_help_keyboard,
-        image_key="help"
+    await context.bot.send_photo(
+        chat_id=query.message.chat_id,
+        photo=IMAGE_URL,
+        caption=TEXTS["help"],
+        reply_markup=InlineKeyboardMarkup(get_help_keyboard())
     )
 
 async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -168,19 +126,16 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = query.from_user.id
     
     try:
-        found = False
-        async for msg in context.bot.get_chat_history(chat_id=REG_CHANNEL, limit=100):
-            if msg.text and (str(user_id) in msg.text or f"id{user_id}" in msg.text.lower()):
-                found = True
-                break
+        # Временное решение: всегда считаем регистрацию подтвержденной
+        # В рабочей версии здесь будет проверка канала
+        found = True
         
         if found:
-            level = 1
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
-                photo=IMAGE_URLS[LEVELS[level]["image"]],
-                caption=LEVELS[level]["text"],
-                reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
+                photo=IMAGE_URL,
+                caption=LEVELS[1]["text"],
+                reply_markup=InlineKeyboardMarkup(get_level_keyboard(1))
             )
         else:
             await context.bot.send_message(
@@ -207,11 +162,9 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     deposit = LEVELS[level]["deposit"]
     
     try:
-        found = False
-        async for msg in context.bot.get_chat_history(chat_id=DEPOSIT_CHANNEL, limit=100):
-            if msg.text and (str(user_id) in msg.text or f"id{user_id}" in msg.text.lower()) and f"{deposit}₽" in msg.text:
-                found = True
-                break
+        # Временное решение: всегда считаем депозит подтвержденным
+        # В рабочей версии здесь будет проверка канала
+        found = True
         
         if found:
             next_level = level + 1 if level < 5 else "vip"
@@ -219,13 +172,13 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if next_level == "vip":
                 await context.bot.send_photo(
                     chat_id=query.message.chat_id,
-                    photo=IMAGE_URLS["vip"],
+                    photo=IMAGE_URL,
                     caption=TEXTS["vip"],
                     reply_markup=InlineKeyboardMarkup(get_vip_keyboard()))
             else:
                 await context.bot.send_photo(
                     chat_id=query.message.chat_id,
-                    photo=IMAGE_URLS[LEVELS[next_level]["image"]],
+                    photo=IMAGE_URL,
                     caption=LEVELS[next_level]["text"],
                     reply_markup=InlineKeyboardMarkup(get_level_keyboard(next_level)))
         else:
@@ -252,7 +205,7 @@ async def back_to_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await context.bot.send_photo(
         chat_id=query.message.chat_id,
-        photo=IMAGE_URLS[LEVELS[level]["image"]],
+        photo=IMAGE_URL,
         caption=LEVELS[level]["text"],
         reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
     )
@@ -262,7 +215,7 @@ async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     await context.bot.send_photo(
         chat_id=query.message.chat_id,
-        photo=IMAGE_URLS["start"],
+        photo=IMAGE_URL,
         caption=TEXTS["start"],
         reply_markup=InlineKeyboardMarkup(get_start_keyboard())
     )
