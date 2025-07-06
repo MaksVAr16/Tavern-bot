@@ -143,8 +143,9 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         logger.info(f"🔍 Проверяем регистрацию для user_id: {user_id} в канале {REG_CHANNEL}")
         
-        async for msg in context.bot.get_chat_history(chat_id=REG_CHANNEL, limit=100):
-            if str(user_id) in msg.text:
+        # Увеличиваем лимит сообщений для проверки и добавляем обработку текста
+        async for msg in context.bot.get_chat_history(chat_id=REG_CHANNEL, limit=200):
+            if msg.text and (str(user_id) in msg.text or f"id{user_id}" in msg.text.lower()):
                 logger.info(f"✅ Найдена регистрация для {user_id} в сообщении: {msg.message_id}")
                 registered = True
                 break
@@ -188,8 +189,8 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         required_amount = LEVELS[level]["deposit"]
-        async for msg in context.bot.get_chat_history(chat_id=DEPOSIT_CHANNEL, limit=100):
-            if str(user_id) in msg.text and f"{required_amount}₽" in msg.text:
+        async for msg in context.bot.get_chat_history(chat_id=DEPOSIT_CHANNEL, limit=200):
+            if msg.text and (str(user_id) in msg.text or f"id{user_id}" in msg.text.lower()) and f"{required_amount}₽" in msg.text:
                 deposit_found = True
                 break
     except Exception as e:
@@ -213,6 +214,7 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def run_bot():
     application = Application.builder().token(BOT_TOKEN).build()
     
+    # Добавляем обработчики с явным указанием паттернов
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
     application.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
@@ -228,15 +230,25 @@ def run_bot():
             pattern=f"^check_dep_{level}$"
         ))
     
+    # Убираем drop_pending_updates и добавляем обработку ошибок
     application.run_polling(
         allowed_updates=Update.ALL_TYPES,
         close_loop=False,
-        drop_pending_updates=True
+        timeout=30,
+        pool_timeout=30
     )
 
 if __name__ == "__main__":
+    # Убедимся, что бот запускается только один раз
     if not os.environ.get("BOT_STARTED"):
         os.environ["BOT_STARTED"] = "1"
         threading.Thread(target=self_ping, daemon=True).start()
         threading.Thread(target=app.run, kwargs={'host':'0.0.0.0','port':8080}, daemon=True).start()
-        run_bot()
+        
+        # Добавляем обработку KeyboardInterrupt для корректного завершения
+        try:
+            run_bot()
+        except KeyboardInterrupt:
+            logger.info("Бот остановлен вручную")
+        except Exception as e:
+            logger.error(f"Критическая ошибка: {str(e)}")
