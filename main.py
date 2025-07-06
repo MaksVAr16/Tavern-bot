@@ -37,8 +37,8 @@ SUPPORT_LINK = "https://t.me/Maksimmm16"
 PARTNER_LINK = "https://1wilib.life/?open=register&p=2z3v"
 VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"
 CHANNEL_LINK = "https://t.me/jacktaverna"
-REG_CHANNEL = -1002739343436
-DEPOSIT_CHANNEL = -1002690483167
+REG_CHANNEL = -1002739343436  # ID канала для проверки регистраций
+DEPOSIT_CHANNEL = -1002690483167  # ID канала для проверки депозитов
 
 IMAGES = {
     "start": "https://i.imgur.com/X8aN0Lk.jpg",
@@ -141,12 +141,17 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     registered = False
     
     try:
+        logger.info(f"🔍 Проверяем регистрацию для user_id: {user_id} в канале {REG_CHANNEL}")
+        
         async for msg in context.bot.get_chat_history(chat_id=REG_CHANNEL, limit=100):
             if str(user_id) in msg.text:
+                logger.info(f"✅ Найдена регистрация для {user_id} в сообщении: {msg.message_id}")
                 registered = True
                 break
+                
     except Exception as e:
-        logger.error(f"Ошибка проверки регистрации: {e}")
+        error_msg = f"❌ Ошибка при проверке регистрации: {str(e)}"
+        logger.error(error_msg)
         await query.edit_message_text(
             "⚠️ Ошибка сервера. Попробуйте позже.",
             reply_markup=InlineKeyboardMarkup([
@@ -158,6 +163,7 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if registered:
         await show_level(query, 1)
     else:
+        logger.warning(f"❌ Регистрация не найдена для user_id: {user_id}")
         await query.edit_message_text(
             TEXTS["reg_failed"],
             reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard())
@@ -175,7 +181,7 @@ async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    level = int(query.data.split('_')[-1])  # Получаем уровень из callback_data
+    level = int(query.data.split('_')[-1])
     
     user_id = query.from_user.id
     deposit_found = False
