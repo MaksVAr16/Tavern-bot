@@ -1,17 +1,11 @@
-try:
-    import imghdr
-except ModuleNotFoundError:
-    # Для Python 3.13+
-    import imageio as imghdr
-
 import os
 import logging
 import threading
 import requests
 import time
 from flask import Flask
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, InputMediaPhoto
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from dotenv import load_dotenv
 
 # ================== НАСТРОЙКИ ================== #
@@ -21,17 +15,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Self-ping для Render
 def self_ping():
     while True:
         try:
             requests.get("https://tavern-bot.onrender.com")
-            logger.info("Self-ping выполнен")
+            logger.info("✅ Self-ping выполнен")
         except Exception as e:
-            logger.error(f"Ошибка self-ping: {e}")
+            logger.error(f"❌ Ошибка self-ping: {e}")
         time.sleep(240)
 
 app = Flask(__name__)
-
 @app.route('/')
 def wake_up():
     return "Бот активен!"
@@ -46,26 +40,23 @@ CHANNEL_LINK = "https://t.me/jacktaverna"
 REG_CHANNEL = -1002739343436
 DEPOSIT_CHANNEL = -1002690483167
 
-# Разные изображения для каждого этапа
-IMAGE_URLS = {
+IMAGES = {
     "start": "https://i.imgur.com/X8aN0Lk.jpg",
-    "help": "https://i.imgur.com/abc123.jpg",
-    "level_1": "https://i.imgur.com/def456.jpg",
-    "level_2": "https://i.imgur.com/ghi789.jpg",
-    "level_3": "https://i.imgur.com/jkl012.jpg",
-    "level_4": "https://i.imgur.com/mno345.jpg",
-    "level_5": "https://i.imgur.com/pqr678.jpg",
-    "vip": "https://i.imgur.com/stu901.jpg"
+    "help": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_1": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_2": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_3": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_4": "https://i.imgur.com/X8aN0Lk.jpg",
+    "level_5": "https://i.imgur.com/X8aN0Lk.jpg",
+    "vip": "https://i.imgur.com/X8aN0Lk.jpg"
 }
 
 TEXTS = {
     "start": "🎰 Добро пожаловать в VIP Казино!\n\n🔥 Первые 50 игроков получают +1 бесплатное вращение!\n\n🔹 Для доступа к рулетке:\n1. Зарегистрируйтесь по кнопке ниже\n2. Подтвердите регистрацию\n3. Получите 3 бесплатных вращения",
     "help": "🛠 Инструкция:\n\n1. Используйте новый аккаунт (старые не подойдут)\n2. Если бот не видит регистрацию — подождите 5 минут\n3. Для депозитов используйте только партнерскую ссылку",
-    "reg_failed": "❌ Регистрация не найдена!\n\nУбедитесь, что вы:\n1. Создали новый аккаунт\n2. Перешли по ссылке из кнопки «🚀 Зарегистрироваться»\n3. Использовали нового бота, а не старого",
-    "deposit_failed": "⚠️ Депозит не найден!\n\nДля перехода на уровень {level} требуется:\n1. Пополнение от {deposit}₽\n2. Использование партнерской ссылки\n3. Совершение депозита с этого аккаунта",
-    "vip": "💎 СЕНСАЦИЯ! ВЫ ВЫИГРАЛИ VIP-ДОСТУП!\n\n🔥 Вы вошли в топ-0.1% игроков!\n\nТеперь вам доступно:\n✅ Персональные сигналы\n✅ Эксклюзивные бонусы\n✅ Гарантированные выигрыши",
-    "reg_success": "✅ Регистрация подтверждена! Добро пожаловать в VIP Казино!\n\n🎉 Вам доступно 3 бесплатных вращения на Уровне 1!",
-    "deposit_success": "✅ Депозит подтвержден! Переходим на Уровень {level}!\n\n🔥 Вам доступно {attempts} вращений!"
+    "reg_failed": "❌ Регистрация не найдена!\n\nУбедитесь, что вы:\n1. Создали новый аккаунт\n2. Перешли по ссылке из кнопки «🚀 Зарегистрироваться»",
+    "deposit_failed": "⚠️ Депозит не найден!\n\nДля перехода на уровень {level} требуется:\n1. Пополнение от {deposit}₽\n2. Использование партнерской ссылки",
+    "vip": "💎 СЕНСАЦИЯ! ВЫ ВЫИГРАЛИ VIP-ДОСТУП!\n\n🔥 Вы вошли в топ-0.1% игроков!\n\nТеперь вам доступно:\n✅ Персональные сигналы\n✅ Эксклюзивные бонусы\n✅ Гарантированные выигрыши"
 }
 
 def get_start_keyboard():
@@ -111,155 +102,135 @@ def get_vip_keyboard():
     ]
 
 LEVELS = {
-    1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!", "image": "level_1"},
-    2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)", "image": "level_2"},
-    3: {"attempts": 10, "deposit": 2000, "text": "🚀 Уровень 3: 10 вращений (депозит от 2000₽)", "image": "level_3"},
-    4: {"attempts": 15, "deposit": 5000, "text": "🤑 Уровень 4: 15 вращений (депозит от 5000₽)", "image": "level_4"},
-    5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)", "image": "level_5"}
+    1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!"},
+    2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)"},
+    3: {"attempts": 10, "deposit": 2000, "text": "🚀 Уровень 3: 10 вращений (депозит от 2000₽)"},
+    4: {"attempts": 15, "deposit": 5000, "text": "🤑 Уровень 4: 15 вращений (депозит от 5000₽)"},
+    5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)"}
 }
 
-def start(update: Update, context: CallbackContext):
-    context.bot.send_photo(
-        chat_id=update.message.chat_id,
-        photo=IMAGE_URLS["start"],
-        caption=TEXTS["start"],
-        reply_markup=InlineKeyboardMarkup(get_start_keyboard())
-    )
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = InlineKeyboardMarkup(get_start_keyboard())
+    if update.message:
+        await update.message.reply_photo(
+            photo=IMAGES["start"],
+            caption=TEXTS["start"],
+            reply_markup=keyboard
+        )
+    else:
+        query = update.callback_query
+        await query.answer()
+        await query.edit_message_media(
+            media=InputMediaPhoto(IMAGES["start"], caption=TEXTS["start"]),
+            reply_markup=keyboard
+        )
 
-def help_command(update: Update, context: CallbackContext):
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    query.answer()
-    context.bot.send_photo(
-        chat_id=query.message.chat_id,
-        photo=IMAGE_URLS["help"],
-        caption=TEXTS["help"],
+    await query.answer()
+    await query.edit_message_media(
+        media=InputMediaPhoto(IMAGES["help"], caption=TEXTS["help"]),
         reply_markup=InlineKeyboardMarkup(get_help_keyboard())
     )
 
-def check_registration(update: Update, context: CallbackContext):
+async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    query.answer()
+    await query.answer()
+    
     user_id = query.from_user.id
+    registered = False
     
     try:
-        # Для теста всегда подтверждаем регистрацию
-        found = True
-        
-        if found:
-            context.bot.send_photo(
-                chat_id=query.message.chat_id,
-                photo=IMAGE_URLS[LEVELS[1]["image"]],
-                caption=LEVELS[1]["text"],
-                reply_markup=InlineKeyboardMarkup(get_level_keyboard(1)))
-        else:
-            context.bot.send_message(
-                chat_id=query.message.chat_id,
-                text=TEXTS["reg_failed"],
-                reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard()))
-            
+        async for msg in context.bot.get_chat_history(chat_id=REG_CHANNEL, limit=100):
+            if str(user_id) in msg.text:
+                registered = True
+                break
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        context.bot.send_message(
-            chat_id=query.message.chat_id,
-            text="⚠️ Ошибка сервера. Попробуйте позже.",
+        logger.error(f"Ошибка проверки регистрации: {e}")
+        await query.edit_message_text(
+            "⚠️ Ошибка сервера. Попробуйте позже.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
             ])
         )
+        return
+    
+    if registered:
+        await show_level(query, 1)
+    else:
+        await query.edit_message_text(
+            TEXTS["reg_failed"],
+            reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard())
+        )
 
-def check_deposit(update: Update, context: CallbackContext):
+async def show_level(query, level):
+    await query.edit_message_media(
+        media=InputMediaPhoto(IMAGES[f"level_{level}"], caption=LEVELS[level]["text"]),
+        reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
+    )
+
+async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await start(update, context)
+
+async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    query.answer()
-    level = int(query.data.split('_')[-1])
+    await query.answer()
+    level = int(query.data.split('_')[-1])  # Получаем уровень из callback_data
+    
     user_id = query.from_user.id
-    deposit = LEVELS[level]["deposit"]
+    deposit_found = False
     
     try:
-        # Для теста всегда подтверждаем депозит
-        found = True
-        
-        if found:
-            next_level = level + 1 if level < 5 else "vip"
-            
-            if next_level == "vip":
-                context.bot.send_photo(
-                    chat_id=query.message.chat_id,
-                    photo=IMAGE_URLS["vip"],
-                    caption=TEXTS["vip"],
-                    reply_markup=InlineKeyboardMarkup(get_vip_keyboard()))
-            else:
-                context.bot.send_photo(
-                    chat_id=query.message.chat_id,
-                    photo=IMAGE_URLS[LEVELS[next_level]["image"]],
-                    caption=LEVELS[next_level]["text"],
-                    reply_markup=InlineKeyboardMarkup(get_level_keyboard(next_level)))
-        else:
-            text = TEXTS["deposit_failed"].format(level=level, deposit=deposit)
-            context.bot.send_message(
-                chat_id=query.message.chat_id,
-                text=text,
-                reply_markup=InlineKeyboardMarkup(get_deposit_failed_keyboard(level)))
-            
+        required_amount = LEVELS[level]["deposit"]
+        async for msg in context.bot.get_chat_history(chat_id=DEPOSIT_CHANNEL, limit=100):
+            if str(user_id) in msg.text and f"{required_amount}₽" in msg.text:
+                deposit_found = True
+                break
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        context.bot.send_message(
-            chat_id=query.message.chat_id,
-            text="⚠️ Ошибка сервера. Попробуйте позже.",
+        logger.error(f"Ошибка проверки депозита: {e}")
+        await query.edit_message_text(
+            "⚠️ Ошибка сервера. Попробуйте позже.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Назад", callback_data=f"back_to_level_{level-1}")]
             ])
         )
-
-def back_to_level(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    level = int(query.data.split('_')[-1])
+        return
     
-    context.bot.send_photo(
-        chat_id=query.message.chat_id,
-        photo=IMAGE_URLS[LEVELS[level]["image"]],
-        caption=LEVELS[level]["text"],
-        reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
-    )
-
-def back_to_start(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    context.bot.send_photo(
-        chat_id=query.message.chat_id,
-        photo=IMAGE_URLS["start"],
-        caption=TEXTS["start"],
-        reply_markup=InlineKeyboardMarkup(get_start_keyboard())
-    )
+    if deposit_found:
+        await show_level(query, level)
+    else:
+        await query.edit_message_text(
+            TEXTS["deposit_failed"].format(level=level, deposit=LEVELS[level]["deposit"]),
+            reply_markup=InlineKeyboardMarkup(get_deposit_failed_keyboard(level))
+        )
 
 def run_bot():
-    updater = Updater(BOT_TOKEN, use_context=True)
-    dp = updater.dispatcher
-
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
-    dp.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
-    dp.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
+    application = Application.builder().token(BOT_TOKEN).build()
+    
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
+    application.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
+    application.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
     for level in range(1, 6):
-        dp.add_handler(CallbackQueryHandler(
-            lambda update, context, lvl=level: check_deposit(update, context, lvl),
-            pattern=f"^check_dep_{level}$"
-        ))
-        
-        dp.add_handler(CallbackQueryHandler(
-            lambda update, context, lvl=level: back_to_level(update, context, lvl),
+        application.add_handler(CallbackQueryHandler(
+            lambda update, context, lvl=level: show_level(update.callback_query, lvl),
             pattern=f"^back_to_level_{level}$"
         ))
+        application.add_handler(CallbackQueryHandler(
+            check_deposit,
+            pattern=f"^check_dep_{level}$"
+        ))
     
-    updater.start_polling()
-    updater.idle()
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        close_loop=False,
+        drop_pending_updates=True
+    )
 
 if __name__ == "__main__":
-    threading.Thread(target=self_ping, daemon=True).start()
-    threading.Thread(
-        target=app.run, 
-        kwargs={'host': '0.0.0.0', 'port': 8080},
-        daemon=True
-    ).start()
-    run_bot()
+    if not os.environ.get("BOT_STARTED"):
+        os.environ["BOT_STARTED"] = "1"
+        threading.Thread(target=self_ping, daemon=True).start()
+        threading.Thread(target=app.run, kwargs={'host':'0.0.0.0','port':8080}, daemon=True).start()
+        run_bot()
