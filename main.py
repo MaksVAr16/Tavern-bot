@@ -15,7 +15,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Self-ping для Render
 def self_ping():
     while True:
         try:
@@ -51,7 +50,6 @@ TEXTS = {
     "deposit_success": "✅ Депозит подтвержден! Переходим на Уровень {level}!\n\n🔥 Вам доступно {attempts} вращений!"
 }
 
-# ================== КНОПКИ ================== #
 def get_start_keyboard():
     return [
         [InlineKeyboardButton("🚀 Зарегистрироваться", url=PARTNER_LINK)],
@@ -94,7 +92,6 @@ def get_vip_keyboard():
         [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
     ]
 
-# ================== УРОВНИ ================== #
 LEVELS = {
     1: {"attempts": 3, "deposit": 0, "text": "🎉 Уровень 1: 3 бесплатных вращения!\n\nВыигрыши до 5000₽!"},
     2: {"attempts": 5, "deposit": 500, "text": "💰 Уровень 2: 5 вращений (депозит от 500₽)"},
@@ -103,7 +100,6 @@ LEVELS = {
     5: {"attempts": 25, "deposit": 15000, "text": "🏆 Уровень 5: 25 вращений (депозит от 15000₽)"}
 }
 
-# ================== ОСНОВНЫЕ ФУНКЦИИ ================== #
 def start(update: Update, context: CallbackContext):
     update.message.reply_text(
         TEXTS["start"],
@@ -124,11 +120,9 @@ def check_registration(update: Update, context: CallbackContext):
     user_id = query.from_user.id
     
     try:
-        # Получаем последние 100 сообщений
         messages = context.bot.get_chat_history(chat_id=REG_CHANNEL, limit=100)
         registered = False
         
-        # Проверяем каждое сообщение
         for msg in messages:
             if msg.text and (str(user_id) in msg.text or f"id{user_id}" in msg.text.lower()):
                 logger.info(f"✅ Найдена регистрация: {msg.text}")
@@ -136,14 +130,12 @@ def check_registration(update: Update, context: CallbackContext):
                 break
         
         if registered:
-            # Уровень 1 после успешной регистрации
             context.bot.send_message(
                 chat_id=query.message.chat_id,
                 text=LEVELS[1]["text"],
                 reply_markup=InlineKeyboardMarkup(get_level_keyboard(1))
             )
         else:
-            # Неудачная регистрация
             context.bot.send_message(
                 chat_id=query.message.chat_id,
                 text=TEXTS["reg_failed"],
@@ -178,23 +170,19 @@ def check_deposit(update: Update, context: CallbackContext):
                 break
         
         if deposit_found:
-            # Успешный депозит - переход на следующий уровень
             next_level = level + 1 if level < 5 else "vip"
             
             if next_level == "vip":
-                # VIP уровень
                 context.bot.send_message(
                     chat_id=query.message.chat_id,
                     text=TEXTS["vip"],
                     reply_markup=InlineKeyboardMarkup(get_vip_keyboard()))
             else:
-                # Обычный уровень
                 context.bot.send_message(
                     chat_id=query.message.chat_id,
                     text=LEVELS[next_level]["text"],
                     reply_markup=InlineKeyboardMarkup(get_level_keyboard(next_level)))
         else:
-            # Неудачная проверка депозита
             text = TEXTS["deposit_failed"].format(level=level, deposit=deposit)
             context.bot.send_message(
                 chat_id=query.message.chat_id,
@@ -228,36 +216,28 @@ def back_to_start(update: Update, context: CallbackContext):
     context.bot.send_message(
         chat_id=query.message.chat_id,
         text=TEXTS["start"],
-        reply_markup=InlineKeyboardMarkup(get_start_keyboard()))
+        reply_markup=InlineKeyboardMarkup(get_start_keyboard())
     )
 
 def main():
     updater = Updater(BOT_TOKEN)
     dp = updater.dispatcher
 
-    # Обработчики команд
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CallbackQueryHandler(help_command, pattern="^help$"))
     dp.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
     dp.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
-    # Обработчики для уровней
     for level in range(1, 6):
-        # Проверка депозита для уровня
         dp.add_handler(CallbackQueryHandler(
             check_deposit,
             pattern=f"^check_dep_{level}$"
         ))
         
-        # Возврат на уровень
         dp.add_handler(CallbackQueryHandler(
             lambda update, ctx, lvl=level: back_to_level(update, ctx, lvl),
             pattern=f"^back_to_level_{level}$"
         ))
-    
-    # VIP уровень (обработчик для кнопок VIP)
-    # У нас пока нет кнопки с pattern="^vip$", но если будет, то добавим
-    # dp.add_handler(CallbackQueryHandler(vip_command, pattern="^vip$"))
     
     updater.start_polling()
     updater.idle()
