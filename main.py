@@ -52,40 +52,11 @@ IMAGES = {
 }
 
 TEXTS = {
-    "start": (
-        "🎰 Добро пожаловать в VIP Казино!\n\n"
-        "🔥 Первые 50 игроков получают +1 бесплатное вращение!\n\n"
-        "🔹 Для доступа к рулетке:\n"
-        "1. Зарегистрируйтесь по кнопке ниже\n"
-        "2. Подтвердите регистрацию\n"
-        "3. Получите 3 бесплатных вращения"
-    ),
-    "help": (
-        "🛠 Инструкция:\n\n"
-        "1. Используйте новый аккаунт (старые не подойдут)\n"
-        "2. Если бот не видит регистрацию — подождите 5 минут\n"
-        "3. Для депозитов используйте только партнерскую ссылку"
-    ),
-    "reg_failed": (
-        "❌ Регистрация не найдена!\n\n"
-        "Убедитесь, что вы:\n"
-        "1. Создали новый аккаунт\n"
-        "2. Перешли по ссылке из кнопки «🚀 Зарегистрироваться»"
-    ),
-    "deposit_failed": (
-        "⚠️ Депозит не найден!\n\n"
-        "Для перехода на уровень {level} требуется:\n"
-        "1. Пополнение от {deposit}₽\n"
-        "2. Использование партнерской ссылки"
-    ),
-    "vip": (
-        "💎 СЕНСАЦИЯ! ВЫ ВЫИГРАЛИ VIP-ДОСТУП!\n\n"
-        "🔥 Вы вошли в топ-0.1% игроков!\n\n"
-        "Теперь вам доступно:\n"
-        "✅ Персональные сигналы\n"
-        "✅ Эксклюзивные бонусы\n"
-        "✅ Гарантированные выигрыши"
-    )
+    "start": "🎰 Добро пожаловать в VIP Казино!\n\n🔥 Первые 50 игроков получают +1 бесплатное вращение!\n\n🔹 Для доступа к рулетке:\n1. Зарегистрируйтесь по кнопке ниже\n2. Подтвердите регистрацию\n3. Получите 3 бесплатных вращения",
+    "help": "🛠 Инструкция:\n\n1. Используйте новый аккаунт (старые не подойдут)\n2. Если бот не видит регистрацию — подождите 5 минут\n3. Для депозитов используйте только партнерскую ссылку",
+    "reg_failed": "❌ Регистрация не найдена!\n\nУбедитесь, что вы:\n1. Создали новый аккаунт\n2. Перешли по ссылке из кнопки «🚀 Зарегистрироваться»",
+    "deposit_failed": "⚠️ Депозит не найден!\n\nДля перехода на уровень {level} требуется:\n1. Пополнение от {deposit}₽\n2. Использование партнерской ссылки",
+    "vip": "💎 СЕНСАЦИЯ! ВЫ ВЫИГРАЛИ VIP-ДОСТУП!\n\n🔥 Вы вошли в топ-0.1% игроков!\n\nТеперь вам доступно:\n✅ Персональные сигналы\n✅ Эксклюзивные бонусы\n✅ Гарантированные выигрыши"
 }
 
 def get_start_keyboard():
@@ -110,10 +81,7 @@ def get_reg_failed_keyboard():
 def get_level_keyboard(level):
     web_app_url = "https://your-webapp.com/roulette"
     return [
-        [InlineKeyboardButton(
-            f"🎰 Крутить рулетку ({LEVELS[level]['attempts']} попыток)",
-            web_app=WebAppInfo(url=f"{web_app_url}?level={level}")
-        )],
+        [InlineKeyboardButton(f"🎰 Крутить рулетку ({LEVELS[level]['attempts']} попыток)", web_app=WebAppInfo(url=f"{web_app_url}?level={level}"))],
         [InlineKeyboardButton("💎 VIP-доступ", url=PARTNER_LINK)],
         [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
     ]
@@ -147,8 +115,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_photo(
             photo=IMAGES["start"],
             caption=TEXTS["start"],
-            reply_markup=keyboard,
-            parse_mode="HTML"
+            reply_markup=keyboard
         )
     else:
         query = update.callback_query
@@ -193,8 +160,7 @@ async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
     else:
         await query.edit_message_text(
             TEXTS["reg_failed"],
-            reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard()),
-            parse_mode="HTML"
+            reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard())
         )
 
 async def show_level(query, level):
@@ -206,9 +172,10 @@ async def show_level(query, level):
 async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await start(update, context)
 
-async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE, level: int):
+async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    level = int(query.data.split('_')[-1])  # Получаем уровень из callback_data
     
     user_id = query.from_user.id
     deposit_found = False
@@ -234,8 +201,7 @@ async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE, leve
     else:
         await query.edit_message_text(
             TEXTS["deposit_failed"].format(level=level, deposit=LEVELS[level]["deposit"]),
-            reply_markup=InlineKeyboardMarkup(get_deposit_failed_keyboard(level)),
-            parse_mode="HTML"
+            reply_markup=InlineKeyboardMarkup(get_deposit_failed_keyboard(level))
         )
 
 def run_bot():
@@ -252,8 +218,8 @@ def run_bot():
             pattern=f"^back_to_level_{level}$"
         ))
         application.add_handler(CallbackQueryHandler(
-            lambda update, context, lvl=level: check_deposit(update, context, lvl),
-            pattern=f"^check_dep_{lvl}$"
+            check_deposit,
+            pattern=f"^check_dep_{level}$"
         ))
     
     application.run_polling(
