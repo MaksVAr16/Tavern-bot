@@ -140,7 +140,7 @@ def check_registration(update: Update, context: CallbackContext):
         found = True
         
         if found:
-            context.bot.send_photo(
+            context.bot.send_photo
                 chat_id=query.message.chat_id,
                 photo=IMAGE_URLS[LEVELS[1]["image"]],
                 caption=LEVELS[1]["text"],
