@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def self_ping():
     while True:
         try:
-            requests.get("https://your-app-name.onrender.com")
+            requests.get("https://tavern-bot.onrender.com")
             logger.info("Self-ping выполнен")
         except Exception as e:
             logger.error(f"Ошибка self-ping: {e}")
@@ -219,8 +219,8 @@ def back_to_level(update: Update, context: CallbackContext):
     context.bot.send_message(
         chat_id=query.message.chat_id,
         text=LEVELS[level]["text"],
-        reply_markup=InlineKeyboardMarkup(get_level_keyboard(level)))
-)
+        reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
+    )
 
 def back_to_start(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -229,7 +229,7 @@ def back_to_start(update: Update, context: CallbackContext):
         chat_id=query.message.chat_id,
         text=TEXTS["start"],
         reply_markup=InlineKeyboardMarkup(get_start_keyboard()))
-)
+    )
 
 def main():
     updater = Updater(BOT_TOKEN)
@@ -255,15 +255,10 @@ def main():
             pattern=f"^back_to_level_{level}$"
         ))
     
-    # VIP уровень
-    dp.add_handler(CallbackQueryHandler(
-        lambda update, ctx: context.bot.send_message(
-            update.callback_query.message.chat_id,
-            text=TEXTS["vip"],
-            reply_markup=InlineKeyboardMarkup(get_vip_keyboard())),
-        pattern="^vip$"
-    ))
-
+    # VIP уровень (обработчик для кнопок VIP)
+    # У нас пока нет кнопки с pattern="^vip$", но если будет, то добавим
+    # dp.add_handler(CallbackQueryHandler(vip_command, pattern="^vip$"))
+    
     updater.start_polling()
     updater.idle()
 
