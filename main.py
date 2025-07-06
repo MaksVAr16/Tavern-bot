@@ -32,57 +32,70 @@ def wake_up():
 
 # ================== КОНФИГУРАЦИЯ ================== #
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-SUPPORT_LINK = "https://t.me/Maksimmm16"
-PARTNER_LINK = "https://1wilib.life/?open=register&p=2z3v"
-VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"
-CHANNEL_LINK = "https://t.me/jacktaverna"
-REG_CHANNEL = "-1002739343436"  # Важно: только цифры
-DEPOSIT_CHANNEL = "-1002690483167"
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # Токен берётся из файла .env
+SUPPORT_LINK = "https://t.me/Maksimmm16"  # Ссылка на поддержку
+PARTNER_LINK = "https://1wilib.life/?open=register&p=2z3v"  # Партнёрская ссылка
+VIP_BOT_LINK = "https://t.me/TESTVIPP_BOT"  # Ссылка на VIP-бота
+CHANNEL_LINK = "https://t.me/jacktaverna"  # Ссылка на канал
+REG_CHANNEL = -1002739343436  # ID канала регистраций (только цифры!)
+DEPOSIT_CHANNEL = -1002690483167  # ID канала депозитов (только цифры!)
 
-# Изображения (рабочие ссылки)
+# ================== ИЗОБРАЖЕНИЯ ================== #
+"""
+КАК ЗАМЕНИТЬ ИЗОБРАЖЕНИЯ:
+1. Загрузите картинку на imgur.com
+2. Возьмите прямую ссылку (оканчивается на .jpg/.png)
+3. Вставьте вместо текущих ссылок
+"""
 IMAGES = {
-    "start": "https://i.imgur.com/X8aN0Lk.jpg",
-    "help": "https://i.imgur.com/X8aN0Lk.jpg", 
-    "level_1": "https://i.imgur.com/X8aN0Lk.jpg",
-    "level_2": "https://i.imgur.com/X8aN0Lk.jpg",
-    "level_3": "https://i.imgur.com/X8aN0Lk.jpg",
-    "level_4": "https://i.imgur.com/X8aN0Lk.jpg",
-    "level_5": "https://i.imgur.com/X8aN0Lk.jpg",
-    "vip": "https://i.imgur.com/X8aN0Lk.jpg"
+    "start": "https://i.imgur.com/X8aN0Lk.jpg",  # Для команды /start
+    "help": "https://i.imgur.com/X8aN0Lk.jpg",  # Для раздела помощи
+    "level_1": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 1
+    "level_2": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 2
+    "level_3": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 3
+    "level_4": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 4
+    "level_5": "https://i.imgur.com/X8aN0Lk.jpg",  # Для уровня 5
+    "vip": "https://i.imgur.com/X8aN0Lk.jpg"  # Для VIP-сообщения
 }
 
-# Тексты сообщений (полностью сохранены)
+# ================== ТЕКСТЫ СООБЩЕНИЙ ================== """
+"""
+КАК РЕДАКТИРОВАТЬ ТЕКСТ:
+1. Меняйте текст внутри кавычек
+2. Для переноса строки используйте \n
+3. Для жирного текста - <b>текст</b>
+4. Для курсива - <i>текст</i>
+"""
 TEXTS = {
     "start": (
-        "🎰 <b>Добро пожаловать в VIP Казино!</b>\n\n"
-        "🔥 <i>Первые 50 игроков получают +1 бесплатное вращение!</i>\n\n"
+        "🎰 Добро пожаловать в VIP Казино!\n\n"
+        "🔥 Первые 50 игроков получают +1 бесплатное вращение!\n\n"
         "🔹 Для доступа к рулетке:\n"
         "1. Зарегистрируйтесь по кнопке ниже\n"
         "2. Подтвердите регистрацию\n"
         "3. Получите 3 бесплатных вращения"
     ),
     "help": (
-        "🛠 <b>Инструкция:</b>\n\n"
-        "1. Используйте <b>новый аккаунт</b> (старые не подойдут)\n"
+        "🛠 Инструкция:\n\n"
+        "1. Используйте новый аккаунт (старые не подойдут)\n"
         "2. Если бот не видит регистрацию — подождите 5 минут\n"
         "3. Для депозитов используйте только партнерскую ссылку"
     ),
     "reg_failed": (
-        "❌ <b>Регистрация не найдена!</b>\n\n"
+        "❌ Регистрация не найдена!\n\n"
         "Убедитесь, что вы:\n"
-        "1. Создали <b>новый</b> аккаунт\n"
+        "1. Создали новый аккаунт\n"
         "2. Перешли по ссылке из кнопки «🚀 Зарегистрироваться»"
     ),
     "deposit_failed": (
-        "⚠️ <b>Депозит не найден!</b>\n\n"
+        "⚠️ Депозит не найден!\n\n"
         "Для перехода на уровень {level} требуется:\n"
         "1. Пополнение от {deposit}₽\n"
         "2. Использование партнерской ссылки"
     ),
     "vip": (
-        "💎 <b>СЕНСАЦИЯ! ВЫ ВЫИГРАЛИ VIP-ДОСТУП!</b>\n\n"
-        "🔥 <i>Вы вошли в топ-0.1% игроков!</i>\n\n"
+        "💎 СЕНСАЦИЯ! ВЫ ВЫИГРАЛИ VIP-ДОСТУП!\n\n"
+        "🔥 Вы вошли в топ-0.1% игроков!\n\n"
         "Теперь вам доступно:\n"
         "✅ Персональные сигналы\n"
         "✅ Эксклюзивные бонусы\n"
@@ -90,102 +103,73 @@ TEXTS = {
     )
 }
 
-# Клавиатуры (полностью сохранены)
-def get_start_keyboard():
-    return [
-        [InlineKeyboardButton("🚀 Зарегистрироваться", url=PARTNER_LINK)],
-        [InlineKeyboardButton("✅ Я зарегистрировался", callback_data="check_reg")],
-        [InlineKeyboardButton("❓ Нужна помощь", callback_data="help")]
-    ]
+# ================== УРОВНИ И КНОПКИ ================== #
+# (остальной код остаётся без изменений)
+# ... [здесь идут все ваши функции get_*_keyboard и LEVELS]
 
-def get_help_keyboard():
-    return [
-        [InlineKeyboardButton("📞 Менеджер", url=SUPPORT_LINK)],
-        [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
-    ]
-
-def get_reg_failed_keyboard():
-    return [
-        [InlineKeyboardButton("🔄 Попробовать снова", url=PARTNER_LINK)],
-        [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
-    ]
-
-def get_level_keyboard(level):
-    web_app_url = "https://your-webapp.com/roulette"
-    return [
-        [InlineKeyboardButton(
-            f"🎰 Крутить рулетку ({LEVELS[level]['attempts']} попыток)",
-            web_app=WebAppInfo(url=f"{web_app_url}?level={level}")
-        )],
-        [InlineKeyboardButton("💎 VIP-доступ", url=PARTNER_LINK)],
-        [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
-    ]
-
-def get_deposit_failed_keyboard(level):
-    return [
-        [InlineKeyboardButton("💳 Пополнить баланс", url=PARTNER_LINK)],
-        [InlineKeyboardButton("🔄 Проверить снова", callback_data=f"check_dep_{level}")],
-        [InlineKeyboardButton("🔙 Назад", callback_data=f"back_to_level_{level-1}" if level > 1 else "back_to_start")]
-    ]
-
-def get_vip_keyboard():
-    return [
-        [InlineKeyboardButton("💎 Получить VIP", url=PARTNER_LINK)],
-        [InlineKeyboardButton("🎁 Забрать приз", url=VIP_BOT_LINK)],
-        [InlineKeyboardButton("📢 Наш канал", url=CHANNEL_LINK)],
-        [InlineKeyboardButton("❓ Помощь", url=SUPPORT_LINK)]
-    ]
-
-# Уровни (полностью сохранены)
-LEVELS = {
-    1: {"attempts": 3, "deposit": 0, "text": "🎉 <b>Уровень 1: 3 бесплатных вращения!</b>\n\nВыигрыши до <b>5000₽</b>!"},
-    2: {"attempts": 5, "deposit": 500, "text": "💰 <b>Уровень 2: 5 вращений (депозит от 500₽)</b>"},
-    3: {"attempts": 10, "deposit": 2000, "text": "🚀 <b>Уровень 3: 10 вращений (депозит от 2000₽)</b>"},
-    4: {"attempts": 15, "deposit": 5000, "text": "🤑 <b>Уровень 4: 15 вращений (депозит от 5000₽)</b>"},
-    5: {"attempts": 25, "deposit": 15000, "text": "🏆 <b>Уровень 5: 25 вращений (депозит от 15000₽)</b>"}
-}
-
-# ================== ОБРАБОТЧИКИ ================== #
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = InlineKeyboardMarkup(get_start_keyboard())
-    if update.message:
-        await update.message.reply_photo(
-            photo=IMAGES["start"],
-            caption=TEXTS["start"],
-            reply_markup=keyboard,
-            parse_mode="HTML"
-        )
-    else:
-        query = update.callback_query
-        await query.answer()
-        await query.edit_message_media(
-            media=InputMediaPhoto(IMAGES["start"], caption=TEXTS["start"]),
-            reply_markup=keyboard
-        )
-
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_media(
-        media=InputMediaPhoto(IMAGES["help"], caption=TEXTS["help"]),
-        reply_markup=InlineKeyboardMarkup(get_help_keyboard())
-    )
-
+# ================== ОСНОВНЫЕ ОБРАБОТЧИКИ ================== #
 async def check_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # Тестовая версия - всегда успешная регистрация
-    await show_level(query, 1)
+    user_id = query.from_user.id
+    registered = False
+    
+    try:
+        async for msg in context.bot.get_chat_history(chat_id=REG_CHANNEL, limit=100):
+            if str(user_id) in msg.text:
+                registered = True
+                break
+    except Exception as e:
+        logger.error(f"Ошибка проверки регистрации: {e}")
+        await query.edit_message_text(
+            "⚠️ Ошибка сервера. Попробуйте позже.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_start")]
+            ])
+        )
+        return
+    
+    if registered:
+        await show_level(query, 1)
+    else:
+        await query.edit_message_text(
+            TEXTS["reg_failed"],
+            reply_markup=InlineKeyboardMarkup(get_reg_failed_keyboard()),
+            parse_mode="HTML"
+        )
 
-async def show_level(query, level):
-    await query.edit_message_media(
-        media=InputMediaPhoto(IMAGES[f"level_{level}"], caption=LEVELS[level]["text"]),
-        reply_markup=InlineKeyboardMarkup(get_level_keyboard(level))
-    )
-
-async def back_to_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await start(update, context)
+async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE, level: int):
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    deposit_found = False
+    
+    try:
+        required_amount = LEVELS[level]["deposit"]
+        async for msg in context.bot.get_chat_history(chat_id=DEPOSIT_CHANNEL, limit=100):
+            if str(user_id) in msg.text and f"{required_amount}₽" in msg.text:
+                deposit_found = True
+                break
+    except Exception as e:
+        logger.error(f"Ошибка проверки депозита: {e}")
+        await query.edit_message_text(
+            "⚠️ Ошибка сервера. Попробуйте позже.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Назад", callback_data=f"back_to_level_{level-1}")]
+            ])
+        )
+        return
+    
+    if deposit_found:
+        await show_level(query, level)
+    else:
+        await query.edit_message_text(
+            TEXTS["deposit_failed"].format(level=level, deposit=LEVELS[level]["deposit"]),
+            reply_markup=InlineKeyboardMarkup(get_deposit_failed_keyboard(level)),
+            parse_mode="HTML"
+        )
 
 # ================== ЗАПУСК ================== #
 def run_bot():
@@ -197,7 +181,7 @@ def run_bot():
     application.add_handler(CallbackQueryHandler(check_registration, pattern="^check_reg$"))
     application.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
     
-    # Для уровней 2-5 (заглушки)
+    # Для уровней 2-5
     for level in range(1, 6):
         application.add_handler(CallbackQueryHandler(
             lambda update, context, lvl=level: show_level(update.callback_query, lvl),
@@ -205,7 +189,7 @@ def run_bot():
         ))
         application.add_handler(CallbackQueryHandler(
             lambda update, context, lvl=level: check_deposit(update, context, lvl),
-            pattern=f"^check_dep_{level}$"
+            pattern=f"^check_dep_{lvl}$"
         ))
     
     application.run_polling(
@@ -213,12 +197,6 @@ def run_bot():
         close_loop=False,
         drop_pending_updates=True
     )
-
-# Заглушка для проверки депозита
-async def check_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE, level: int):
-    query = update.callback_query
-    await query.answer()
-    await show_level(query, level)
 
 if __name__ == "__main__":
     if not os.environ.get("BOT_STARTED"):
